@@ -28,20 +28,6 @@ def get_playlist_items(playlist_url):
     return playlist_items
 
 
-
-def get_descriptions_from_plalylist_items(playlist_items):
-    descriptions = [p['snippet']['description'] for p in playlist_items]
-    return descriptions
-
-
-def get_transcripts_from_plalylist_items(playlist_items):
-    video_ids = [p['snippet']['resourceId']['videoId'] for p in playlist_items]
-    for video_id in video_ids:
-        transcript = YouTubeTranscriptApi.get_transcript(video_id)
-        ' '.join([t['text'] for t in transcript]).replace('\n',' ')
-    return descriptions
-
-
 def dump_playlist_descriptions_and_transcripts_to_json(playlist_url, json_filename):
     playlist_items = get_playlist_items()
     results = []

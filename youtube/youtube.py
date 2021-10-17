@@ -3,6 +3,7 @@ import googleapiclient.discovery
 from urllib.parse import parse_qs, urlparse
 import json
 from youtube_transcript_api import YouTubeTranscriptApi
+import watson_transcript
 
 KEY = "AIzaSyArK2BYnwnm8b72atyLRP-liNJkFphIZpk"
 
@@ -36,13 +37,22 @@ def dump_playlist_descriptions_and_transcripts_to_json(playlist_url, json_filena
     for playlist_item in playlist_items:
         description = playlist_item['snippet']['description']
         video_id = playlist_item['snippet']['resourceId']['videoId']
+        video_title = playlist_item['snippet']['title']
+        position_in_playlist = playlist_item['snippet']['position']
         try:
             transcript = YouTubeTranscriptApi.get_transcript(video_id)
             transcript = ' '.join([t['text'] for t in transcript]).replace('\n',' ')
+            transcription_mode = "YouTubeTranscriptApi"
         except:
-            transcript = "NA"
+            try:
+                transcript = watson_transcript.transcript(video_id, video_title)
+                transcription_mode = "Watson"
+            except:
+                transcript = "NA"
         result ={
                 "video_id": video_id,
+                "video_title": video_title,
+                "position_in_playlist": position_in_playlist,
                 "description": description,
                 "transcript": transcript
                 }
@@ -50,7 +60,7 @@ def dump_playlist_descriptions_and_transcripts_to_json(playlist_url, json_filena
         ctr += 1
         print(video_id, "Done!", "Counter:", ctr)
     fp = open(json_filename, 'w')
-    json.dump(results, fp, sort_keys=True, indent=4)
+    json.dump(results, fp, sort_keys=False, indent=4)
     fp.close()
 
 

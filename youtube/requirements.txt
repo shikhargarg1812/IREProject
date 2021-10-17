@@ -1,0 +1,7 @@
+
+
+google-api-python-client
+youtube-transcript-api
+progressbar
+pafy
+ibm-watson

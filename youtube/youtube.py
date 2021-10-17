@@ -36,16 +36,17 @@ def dump_playlist_descriptions_and_transcripts_to_json(playlist_url, json_filena
     for playlist_item in playlist_items:
         description = playlist_item['snippet']['description']
         video_id = playlist_item['snippet']['resourceId']['videoId']
-        transcript = YouTubeTranscriptApi.get_transcript(video_id)
-        transcript = ' '.join([t['text'] for t in transcript]).replace('\n',' ')
-
-        results.append(
-            {
+        try:
+            transcript = YouTubeTranscriptApi.get_transcript(video_id)
+            transcript = ' '.join([t['text'] for t in transcript]).replace('\n',' ')
+        except:
+            transcript = "NA"
+        result ={
                 "video_id": video_id,
                 "description": description,
                 "transcript": transcript
-            }
-        )
+                }
+        results.append(result)
         ctr += 1
         print(video_id, "Done!", "Counter:", ctr)
     fp = open(json_filename, 'w')
@@ -61,3 +62,4 @@ def main():
 
 if __name__ =="__main__":
     main()
+

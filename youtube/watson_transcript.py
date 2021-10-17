@@ -15,7 +15,7 @@ service.set_service_url(creds.watson_api_url)
 
 
 def transcript(video_id, title):
-    os.makedirs("audio_files", present_ok=True)
+    os.makedirs("audio_files", exist_ok=True)
     webm_file = os.path.join("audio_files", title+'.webm')
     flac_file = os.path.join("audio_files", title+'.flac')
 

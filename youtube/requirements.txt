@@ -4,4 +4,6 @@ google-api-python-client
 youtube-transcript-api
 progressbar
 pafy
+youtube-dl
 ibm-watson
+ibm-cloud-sdk-core

@@ -1,0 +1,2305 @@
+Google AI Blog
+Blog
+The latest from Google Research
+How Underspecification Presents Challenges for Machine Learning
+Monday, October 18, 2021
+Posted by Alex D’Amour and Katherine Heller, Research Scientists, Google Research
+Machine learning (ML) models are being used more widely today than ever before and are becoming increasingly impactful. However, they often exhibit unexpected behavior when they are used in real-world domains. For example, computer vision models can exhibit surprising sensitivity to irrelevant features, while natural language processing models can depend unpredictably on demographic correlations not directly indicated by the text. Some reasons for these failures are well-known: for example, training ML models on poorly curated data, or training models to solve prediction problems that are structurally mismatched with the application domain. Yet, even when these known problems are handled, model behavior can still be inconsistent in deployment, varying even between training runs.
+In “
+Underspecification Presents Challenges for Credibility in Modern Machine Learning
+”, to be published in the
+Journal of Machine Learning Research
+, we show that a key failure mode especially prevalent in modern ML systems is
+underspecification
+. The idea behind underspecification is that while ML models are validated on held-out data, this validation is often insufficient to guarantee that the models will have well-defined behavior when they are used in a new setting. We show that underspecification appears in a wide variety of practical ML systems and suggest some strategies for mitigation.
+Underspecification
+ML systems have been successful largely because they incorporate validation of the model on held-out data to ensure high performance. However, for a fixed dataset and model architecture, there are often many distinct ways that a trained model can achieve high validation performance. But under standard practice, models that encode distinct solutions are often treated as equivalent because their held-out predictive performance is approximately equivalent.
+Importantly, the distinctions between these models do become clear when they are measured on criteria beyond standard predictive performance, such as
+fairness
+or
+robustness
+to irrelevant input perturbations. For example, among models that perform equally well on standard validations, some may exhibit greater performance disparities between social groups than others, or rely more heavily on irrelevant information. These differences, in turn, can translate to real differences in behavior when the model is used in real-world scenarios.
+Underspecification refers to this gap between the requirements that practitioners often have in mind when they build an ML model, and the requirements that are actually enforced by the ML pipeline (i.e., the design and implementation of a model). An important consequence of underspecification is that even if the pipeline could
+in principle
+return a model that meets all of these requirements, there is no guarantee that
+in practice
+the model will satisfy any requirement beyond accurate prediction on held-out data. In fact, the model that is returned may have properties that instead depend on arbitrary or opaque choices made in the implementation of the ML pipeline, such as those arising from random initialization seeds, data ordering, hardware, etc. Thus, ML pipelines that do not include explicit defects may still return models that behave unexpectedly in real-world settings.
+Identifying Underspecification in Real Applications
+In this work, we investigated concrete implications of underspecification in the kinds of ML models that are used in real-world applications. Our empirical strategy was to construct sets of models using nearly identical ML pipelines, to which we only applied small changes that had no practical effect on standard validation performance. Here, we focused on the random seed used to initialize training and determine data ordering. If important properties of the model can be substantially influenced by these changes, it indicates that the pipeline does not fully specify this real-world behavior. In every domain where we conducted this experiment, we found that these small changes induced substantial variation on axes that matter in real-world use.
+Underspecification in Computer Vision
+As an example, consider underspecification and its relationship to robustness in computer vision. A central challenge in computer vision is that deep models often suffer from brittleness under distribution shifts that humans do not find challenging. For instance, image classification models that perform well on the
+ImageNet
+benchmark are known to perform poorly on benchmarks like
+ImageNet-C
+, which apply common image corruptions, such as pixelization or motion blur, to the standard ImageNet test set.
+In our experiment, we showed that model sensitivity to these corruptions is underspecified by standard pipelines. Following the strategy discussed above, we generated fifty
+ResNet-50
+image classification models using the same pipeline and the same data. The only difference between these models was the random seed used in training. When evaluated on the standard ImageNet validation set, these models achieved practically equivalent performance. However, when the models were evaluated on different test sets in the ImageNet-C benchmark (i.e., on corrupted data), performance on some tests varied by orders of magnitude more than on standard validations. This pattern persisted for larger-scale models that were pre-trained on much larger datasets (e.g., a
+BiT-L
+model pre-trained on the 300 million image
+JFT-300M
+dataset). For these models, varying the random seed at the fine-tuning stage of training produced a similar pattern of variations.
+Left:
+Parallel axis plots showing the variation in accuracy between identical, randomly initialized ResNet-50 models on strongly corrupted ImageNet-C data. Lines represent the performance of each model in the ensemble on classification tasks using uncorrupted test data, as well as corrupted data (pixelation, contrast, motion blur, and brightness). Given values are the deviation in accuracy from the ensemble mean, scaled by the standard deviation of accuracies on the “clean” ImageNet test set. The solid black line highlights the performance of an arbitrarily selected model to show how performance on one test may not be a good indication of performance on others.
+Right:
+Example images from the standard ImageNet test set, with corrupted versions from the ImageNet-C benchmark.
+We also showed that underspecification can have practical implications in special-purpose computer vision models built for medical imaging, where deep learning models have shown great promise. We considered two research pipelines intended as precursors for medical applications: one ophthalmology pipeline for building models that detect
+diabetic retinopathy
+and referable
+diabetic macular edema
+from retinal
+fundus
+images, and one dermatology pipeline for building models to recognize common dermatological conditions from photographs of skin. In our experiments, we considered pipelines that were validated only on randomly held-out data.
+We then stress-tested models produced by these pipelines on practically important dimensions. For the ophthalmology pipeline, we tested how models trained with different random seeds performed when applied to images taken from a new camera type not encountered during training. For the dermatology pipeline, the stress test was similar, but for patients with different estimated skin types (i.e., non-dermatologist evaluation of tone and response to sunlight). In both cases, we found that standard validations were not enough to fully specify the trained model’s performance on these axes. In the ophthalmology application, the random seed used in training induced wider variability in performance on a new camera type than would have been expected from standard validations, and in the dermatology application, the random seed induced similar variation in performance in skin-type subgroups, even though the overall performance of the models was stable across seeds.
+These results reiterate that standard hold-out testing alone is not sufficient to ensure acceptable model behavior in medical applications, underscoring the need for expanded testing protocols for ML systems intended for application in the medical domain. In the medical literature, such validations are termed "external validation" and have historically been part of reporting guidelines such as
+STARD
+and
+TRIPOD
+. These are being emphasized in updates such as
+STARD-AI
+and
+TRIPOD-AI
+. Finally, as part of regulated medical device development processes (see, e.g.,
+US
+and
+EU
+regulations), there are other forms of safety and performance related considerations, such as mandatory compliance to standards for risk management, human factors engineering, clinical validations and accredited body reviews, that aim to ensure acceptable medical application performance.
+Relative variability of medical imaging models on stress tests, using the same conventions as the figure above.
+Top left:
+Variation in AUC between diabetic retinopathy classification models trained using different random seeds when evaluated on images from different camera types. In this experiment, camera type 5 was not encountered during training.
+Bottom left:
+Variation in accuracy between skin condition classification models trained using different random seeds when evaluated on different estimated skin types (approximated by dermatologist-trained laypersons from retrospective photographs and potentially subject to labeling errors).
+Right:
+example images from the original test set (
+left
+) and the stress test set (
+right
+).
+Underspecification in Other Applications
+The cases discussed above are a small subset of models that we probed for underspecification. Other cases we examined include:
+Natural Language Processing
+: We showed that on a variety of NLP tasks, underspecification affected how models derived from
+BERT
+-processed sentences. For example, depending on the random seed, a pipeline could produce a model that depends more or less on
+correlations involving gender
+(e.g., between gender and occupation) when making predictions.
+Acute Kidney Injury (AKI) prediction
+: We showed that underspecification affects reliance on operational versus physiological signals in
+AKI prediction
+models based on electronic health records.
+Polygenic Risk Scores (PRS)
+: We showed that underspecification influences the ability for (PRS) models, which predict clinical outcomes based on patient genomic data, to generalize across different patient populations.
+In each case, we showed that these important properties are left ill-defined by standard training pipelines, making them sensitive to seemingly innocuous choices.
+Conclusion
+Addressing underspecification is a challenging problem. It requires full specification and testing of requirements for a model beyond standard predictive performance. Doing this well needs full engagement with the context in which the model will be used, an understanding of how the training data were collected, and often, incorporation of domain expertise when the available data fall short. These aspects of ML system design are often underemphasized in ML research today. A key goal of this work is to show how underinvestment in this area can manifest concretely, and to encourage the development of processes for fuller specification and testing of ML pipelines.
+Some important first steps in this area are to specify stress testing protocols for any applied ML pipeline that is meant to see real-world use. Once these criteria are codified in measurable metrics, a number of different algorithmic strategies may be useful for improving them, including data augmentation, pretraining, and incorporation of causal structure. It should be noted, however, that ideal stress testing and improvement processes will usually require iteration: both the requirements for ML systems, and the world in which they are used, are constantly changing.
+Acknowledgements
+We would like to thank all of our co-authors, Dr. Nenad Tomasev (DeepMind), Prof. Finale Doshi-Velez (Harvard SEAS), UK Biobank, and our partners, EyePACS, Aravind Eye Hospital and Sankara Nethralaya.
+SimVLM: Simple Visual Language Model Pre-training with Weak Supervision
+Friday, October 15, 2021
+Posted by Zirui Wang, Student Researcher and Yuan Cao Research Scientist, Google Research, Brain Team
+Vision-language modeling grounds language understanding in corresponding visual inputs, which can be useful for the development of important products and
+tools
+. For example, an image captioning model generates natural language descriptions based on its understanding of a given image. While there are
+various challenges
+to such cross-modal work, significant progress
+has been made
+in the past few years on vision-language modeling thanks to the adoption of effective vision-language pre-training (VLP). This approach aims to learn a single
+feature space
+from both visual and language inputs, rather than learning two separate feature spaces, one each for visual inputs and another for language inputs. For this purpose, existing VLP often leverages an object detector, like
+Faster R-CNN
+, trained on labeled object detection datasets to isolate
+regions-of-interest (ROI)
+, and relies on task-specific approaches (i.e., task-specific loss functions) to learn representations of images and texts jointly. Such approaches require annotated datasets or time to design task-specific approaches, and so, are less scalable.
+To address this challenge, in “
+SimVLM: Simple Visual Language Model Pre-training with Weak Supervision
+”, we propose a minimalist and effective VLP, named SimVLM, which stands for “Simple Visual Language Model”. SimVLM is trained end-to-end with a unified objective, similar to language modeling, on a vast amount of
+weakly aligned
+image-text pairs (i.e., the text paired with an image is not necessarily a precise description of the image). The simplicity of SimVLM enables efficient training on such a scaled dataset, which helps the model to achieve state-of-the-art performance across six vision-language benchmarks. Moreover, SimVLM learns a unified multimodal representation that enables strong
+zero-shot
+cross-modality transfer without fine-tuning or with fine-tuning only on text data, including for tasks such as open-ended visual
+question answering
+, image captioning and multimodal translation.
+Model and Pre-training Procedure
+Unlike existing VLP methods that adopt pre-training procedures similar to masked language modeling (like in
+BERT
+), SimVLM adopts the sequence-to-sequence framework and is trained with a one prefix language model (PrefixLM) objective, which receives the leading part of a sequence (the prefix) as inputs, then predicts its continuation. For example, given the sequence “A dog is chasing after a yellow ball”, the sequence is randomly truncated to “A dog is chasing” as the prefix, and the model will predict its continuation. The concept of a prefix similarly applies to images, where an image is divided into a number of “patches”, then a subset of those patches are sequentially fed to the model as inputs—this is called an “image patch sequence”. In SimVLM, for multimodal inputs (e.g., images and their captions), the prefix is a concatenation of both the image patch sequence and prefix text sequence, received by the encoder. The decoder then predicts the continuation of the textual sequence. Compared to prior VLP models combining several pre-training losses, the PrefixLM loss is the
+only
+training objective and significantly simplifies the training process. This approach for SimVLM maximizes its flexibility and universality in accommodating different task setups.
+Finally, due to its success for both language and vision tasks, like
+BERT
+and
+ViT
+, we adopt the
+Transformer
+architecture as the backbone of our model, which, unlike prior ROI-based VLP approaches, enables the model to directly take in raw images as inputs. Moreover, inspired by
+CoAtNet
+, we adopt a convolution stage consisting of the first three blocks of
+ResNet
+in order to extract contextualized patches, which we find more advantageous than the naïve linear projection in the original ViT model. The overall model architecture is illustrated below.
+Overview of the SimVLM model architecture.
+The model is pre-trained on large-scale web datasets for both image-text and text-only inputs. For joint vision and language data, we use the training set of
+ALIGN
+which contains about 1.8B noisy image-text pairs. For text-only data, we use the
+Colossal Clean Crawled Corpus (C4)
+dataset introduced by
+T5
+, totaling 800G web-crawled documents.
+Benchmark Results
+After pre-training, we fine-tune our model on the following multimodal tasks:
+VQA
+,
+NLVR2
+,
+SNLI-VE
+,
+COCO Caption
+,
+NoCaps
+and
+Multi30K En-De
+. For example, for VQA the model takes an image and corresponding questions about the input image, and generates the answer as output. We evaluate SimVLM models of three different sizes (base: 86M parameters, large: 307M and huge: 632M) following the same setup as in
+ViT
+. We compare our results with strong existing baselines, including
+LXMERT
+,
+VL-T5
+,
+UNITER
+,
+OSCAR
+,
+Villa
+,
+SOHO
+,
+UNIMO
+,
+VinVL
+, and find that SimVLM achieves state-of-the-art performance across all these tasks despite being much simpler.
+VQA
+NLVR2
+SNLI-VE
+CoCo Caption
+Model
+test-dev
+test-std
+dev
+test-P
+dev
+test
+B@4
+M
+C
+S
+LXMERT
+72.4
+72.5
+74.9
+74.5
+-
+-
+-
+-
+-
+-
+VL-T5
+-
+70.3
+74.6
+73.6
+-
+-
+-
+-
+116.5
+-
+UNITER
+73.8
+74
+79.1
+80
+79.4
+79.4
+-
+-
+-
+-
+OSCAR
+73.6
+73.8
+79.1
+80.4
+-
+-
+41.7
+30.6
+140
+24.5
+Villa
+74.7
+74.9
+79.8
+81.5
+80.2
+80
+-
+-
+-
+-
+SOHO
+73.3
+73.5
+76.4
+77.3
+85
+85
+-
+-
+-
+-
+UNIMO
+75.1
+75.3
+-
+-
+81.1
+80.6
+39.6
+-
+127.7
+-
+VinVL
+76.6
+76.6
+82.7
+84
+-
+-
+41
+31.1
+140.9
+25.2
+SimVLM base
+77.9
+78.1
+81.7
+81.8
+84.2
+84.2
+39
+32.9
+134.8
+24
+SimVLM large
+79.3
+79.6
+84.1
+84.8
+85.7
+85.6
+40.3
+33.4
+142.6
+24.7
+SimVLM huge
+80
+80.3
+84.5
+85.2
+86.2
+86.3
+40.6
+33.7
+143.3
+25.4
+Evaluation results on a subset of 6 vision-language benchmarks in comparison with existing baseline models. Metrics used above (higher is better):
+BLEU-4
+(B@4),
+METEOR
+(M),
+CIDEr
+(C),
+SPICE
+(S). Similarly, evaluation on NoCaps and Multi30k En-De also show state-of-the-art performance.
+Zero-Shot Generalization
+Since SimVLM has been trained on large amounts of data from both visual and textual modalities, it is interesting to ask whether it is capable of performing zero-shot cross-modality transfer. We examine the model on multiple tasks for this purpose, including image captioning, multilingual captioning, open-ended VQA and visual text completion. We take the pre-trained SimVLM and directly decode it for multimodal inputs with fine-tuning only on text data or without fine-tuning entirely. Some examples are given in the figure below. It can be seen that the model is able to generate not only high-quality image captions, but also German descriptions, achieving cross-lingual and cross-modality transfer at the same time.
+Examples of SimVLM zero-shot generalization. (
+a
+) Zero-shot image captioning: Given an image together with text prompts, the pre-trained model predicts the content of the image without fine-tuning. (
+b
+) zero-shot cross-modality transfer on German image captioning: The model generates captions in German even though it has never been fine-tuned on image captioning data in German. (
+c
+) Generative VQA: The model is capable of generating answers outside the candidates of the original VQA dataset. (
+d
+) Zero-shot visual text completion: The pre-trained model completes a textual description grounded on the image contents; (
+e
+) Zero-shot open-ended VQA: The model provides factual answers to the questions about images, after continued pre-training on the
+WIT
+dataset. Images are from NoCaps, which come from the
+Open Images
+dataset under the CC BY 2.0 license.
+To quantify SimVLM’s zero-shot performance, we take the pre-trained, frozen model and decode it on the
+COCO Caption
+and
+NoCaps
+benchmarks, then compare with supervised baselines. Even without supervised fine-tuning (in the middle-rows), SimVLM can reach zero-shot captioning quality close to the quality of supervised methods.
+Zero shot image captioning results. Here “Pre.” indicates the model is pre-trained and “Sup.” means the model is finetuned on task-specific supervision. For NoCaps, [In, Near, Out] refer to in-domain, near-domain and out-of-domain respectively. We compare results from
+BUTD
+,
+AoANet
+,
+M2 Transformer
+,
+OSCAR
+and
+VinVL
+. Metrics used above (higher is better): BLEU-4 (B@4), METEOR (M), CIDEr (C), SPICE (S). For NoCaps, CIDEr numbers are reported.
+Conclusion
+We propose a simple yet effective framework for VLP. Unlike prior work using object detection models and task-specific auxiliary losses, our model is trained end-to-end with a single prefix language model objective. On various vision-language benchmarks, this approach not only obtains state-of-the-art performance, but also exhibits intriguing zero-shot behaviors in multimodal understanding tasks.
+Acknowledgements
+We would like to thank Jiahui Yu, Adams Yu, Zihang Dai, Yulia Tsvetkov for preparation of the SimVLM paper, Hieu Pham, Chao Jia, Andrew Dai, Bowen Zhang, Zhifeng Chen, Ruoming Pang, Douglas Eck, Claire Cui and Yonghui Wu for helpful discussions, Krishna Srinivasan, Samira Daruki, Nan Du and Aashi Jain for help with data preparation, Jonathan Shen, Colin Raffel and Sharan Narang for assistance on experimental settings, and others on the Brain team for support throughout this project.
+Baselines for Uncertainty and Robustness in Deep Learning
+Thursday, October 14, 2021
+Posted by Zachary Nado, Research Engineer and Dustin Tran, Research Scientist, Google Research, Brain Team
+Machine learning (ML) is increasingly being used in real-world applications, so understanding the
+uncertainty and robustness
+of a model is necessary to ensure performance in practice. For example, how do models behave when deployed on data that differs from the data on which they were trained? How do models signal when they are likely to make a mistake?
+To get a handle on an ML model's behavior, its performance is often measured against a baseline for the task of interest. With each baseline, researchers must try to reproduce results only using descriptions from the corresponding papers , which results in
+serious challenges for replication
+. Having access to the code for experiments may be more useful, assuming it is well-documented and maintained. But even this is not enough, because the baselines must be rigorously validated. For example, in retrospective analyses over a collection of works [
+1
+,
+2
+,
+3
+], authors often find that a simple well-tuned baseline outperforms more sophisticated methods. In order to truly understand how models perform relative to each other, and enable researchers to measure whether new ideas in fact yield meaningful progress, models of interest must be compared to a common baseline.
+In “
+Uncertainty Baselines: Benchmarks for Uncertainty & Robustness in Deep Learning
+”, we introduce
+Uncertainty Baselines
+, a collection of high-quality implementations of standard and state-of-the-art deep learning methods for a variety of tasks, with the goal of making research on uncertainty and robustness more reproducible. The collection spans 19 methods across nine tasks, each with at least five metrics. Each baseline is a self-contained experiment pipeline with easily reusable and extendable components and with minimal dependencies outside of the framework in which it is written. The included pipelines are implemented in
+TensorFlow
+,
+PyTorch
+, and
+Jax
+. Additionally, the hyperparameters for each baseline have been extensively tuned over numerous iterations so as to provide even stronger results.
+Uncertainty Baselines
+As of this writing, Uncertainty Baselines provides a total of 83 baselines, comprising 19 methods encompassing standard and more recent strategies over nine datasets. Example methods include
+BatchEnsemble
+,
+Deep Ensembles
+,
+Rank-1 Bayesian Neural Nets
+,
+Monte Carlo Dropout
+, and
+Spectral-normalized Neural Gaussian Processes
+. It acts as a successor in merging several popular benchmarks in the community:
+Can You Trust Your Model's Uncertainty?
+,
+BDL benchmarks
+, and
+Edward2's baselines
+.
+Dataset
+Inputs
+Output
+Train Examples
+Test Datasets
+CIFAR
+RGB images
+10-class distribution
+50,000
+3
+ImageNet
+RGB images
+1000-class distribution
+1,281,167
+6
+CLINC Intent Detection
+Dialog system query text
+150-class distribution
+(in 10 domains)
+15,000
+2
+Kaggle's Diabetic Retinopathy Detection
+RGB images
+Probability of Diabetic Retinopathy
+35,126
+1
+Wikipedia Toxicity
+Wikipedia comment text
+Probability of toxicity
+159,571
+3
+A subset of 5 out of 9 available datasets for which baselines are provided. The datasets span tabular, text, and image modalities.
+Uncertainty Baselines sets up each baseline under a choice of base model, training dataset, and a suite of evaluation metrics. Each is then tuned over its hyperparameters to maximize performance on such metrics. The available baselines vary among these three axes:
+Base models (architectures) include
+Wide ResNet 28-10
+,
+ResNet-50
+,
+BERT
+, and simple fully-connected networks.
+Training datasets include standard machine learning datasets (
+CIFAR
+,
+ImageNet
+, and
+UCI
+) as well as more real-world problems (
+Clinc Intent Detection
+,
+Kaggle’s Diabetic Retinopathy Detection
+, and
+Wikipedia Toxicity
+).
+Evaluation includes predictive metrics (e.g., accuracy), uncertainty metrics (e.g., selective prediction and calibration error), compute metrics (inference latency), and performance on in- and out-of-distribution datasets.
+Modularity and Reusability
+In order for researchers to use and build on the baselines, we deliberately optimized them to be as modular and minimal as possible. As seen in the workflow figure below, Uncertainty Baselines introduces no new class abstractions, instead reusing classes that pre-exist in the ecosystem (e.g., TensorFlow’s
+tf.data.Dataset
+). The train/evaluation pipeline for each of the baselines is contained in a standalone Python file for that experiment, which can run on CPU, GPU, or Google Cloud TPUs. Because of this independence between baselines, we are able to develop baselines in any of TensorFlow,
+PyTorch
+or
+JAX
+.
+Workflow diagram for how the different components of Uncertainty Baselines are structured. All datasets are subclasses of the BaseDataset class, which provides a simple API for use in baselines written with any of the supported frameworks. The outputs from any of the baselines can then be analyzed with the
+Robustness Metrics
+library.
+One area of debate among research engineers is how to manage hyperparameters and other experiment configuration values, which can easily number in the dozens. Instead of using one of the many frameworks built for this, and risk users having to learn yet another library, we opted to simply use Python flags, i.e., flags defined using
+Abseil
+that follow Python conventions. This should be a familiar technique to most researchers, and is easy to extend and plug into other pipelines.
+Reproducibility
+In addition to being able to run each of our baselines using the documented commands and get the same reported results, we also aim to release hyperparameter tuning results and final model checkpoints for further reproducibility. Right now we only have these fully open-sourced for the
+Diabetic Retinopathy baselines
+, but we will continue to upload more results as we run them. Additionally, we have
+examples of baselines
+that are exactly reproducible up to hardware determinism.
+Practical Impact
+Each of the baselines included in our repository has gone through extensive hyperparameter tuning, and we hope that researchers can readily reuse this effort without the need for expensive retraining or retuning. Additionally, we hope to avoid minor differences in the pipeline implementations affecting baseline comparisons.
+Uncertainty Baselines has already been used in
+numerous research projects
+. If you are a researcher with other methods or datasets you would like to contribute, please open a GitHub issue to start a discussion!
+Acknowledgements
+We would like to thank a number of folks who are codevelopers, provided guidance, and/or helped review this post: Neil Band, Mark Collier, Josip Djolonga, Michael W. Dusenberry, Sebastian Farquhar, Angelos Filos, Marton Havasi, Rodolphe Jenatton, Ghassen Jerfel, Jeremiah Liu, Zelda Mariet, Jeremy Nixon, Shreyas Padhy, Jie Ren, Tim G. J. Rudner, Yeming Wen, Florian Wenzel, Kevin Murphy, D. Sculley, Balaji Lakshminarayanan, Jasper Snoek, Yarin Gal.
+An ML-Based Framework for COVID-19 Epidemiology
+Wednesday, October 13, 2021
+Posted by Joel Shor, Software Engineer, Google Research and Sercan Arik, Research Scientist, Google Research, Cloud AI Team
+Over the past 20 months, the COVID-19 pandemic has had a profound impact on daily life, presented logistical challenges for businesses planning for supply and demand, and created difficulties for governments and organizations working to support communities with timely public health responses. While there have been well-studied epidemiology models that can help predict COVID-19 cases and deaths to help with these challenges, this pandemic has generated an unprecedented amount of real-time publicly-available data, which makes it possible to use more advanced machine learning techniques in order to improve results.
+In "
+A prospective evaluation of AI-augmented epidemiology to forecast COVID-19 in the USA and Japan
+", accepted to
+npj Digital Medicine
+,
+we continued our previous work [
+1
+,
+2
+,
+3
+,
+4
+] and proposed a framework designed to simulate the effect of certain policy changes on COVID-19 deaths and cases, such as school closings or a state-of-emergency at a US-state, US-county, and Japan-prefecture level, using only publicly-available data. We conducted a 2-month
+prospective assessment
+of our public forecasts, during which our US model tied or outperformed all other 33 models on
+COVID19 Forecast Hub
+. We also released a fairness analysis of the performance on protected sub-groups in the US and Japan. Like other Google initiatives to help with COVID-19 [
+1
+,
+2
+,
+3
+], we are releasing daily forecasts based on this work to the public for free, on the web [
+us
+,
+ja
+] and through
+BigQuery
+.
+Prospective forecasts for the USA and Japan models. Ground truth cumulative deaths counts (green lines) are shown alongside the forecasts for each day. Each daily forecast contains a predicted increase in deaths for each day during the prediction window of 4 weeks (shown as colored dots, where shading shifting to yellow indicates days further from the date of prediction in the forecasting horizon, up to 4 weeks). Predictions of deaths are shown for the USA (
+above
+) and Japan (
+below
+).
+The Model
+Models for infectious diseases have been studied by
+epidemiologists
+for decades.
+Compartmental models
+are the most common, as they are simple, interpretable, and can fit different disease phases effectively. In compartmental models, individuals are separated into mutually exclusive groups, or compartments, based on their disease status (such as susceptible, exposed, or recovered), and the rates of change between these compartments are modeled to fit the past data. A population is assigned to compartments representing disease states, with people flowing between states as their disease status changes.
+In this work, we propose a few extensions to the
+Susceptible-Exposed-Infectious-Removed
+(SEIR) type compartmental model. For example, susceptible people becoming exposed causes the susceptible compartment to decrease and the exposed compartment to increase, with a rate that depends on disease spreading characteristics. Observed data for COVID-19 associated outcomes, such as confirmed cases, hospitalizations and deaths, are used for training of compartmental models.
+Visual explanation of "compartmental” models in epidemiology. People "flow" between compartments. Real-world events, like policy changes and more ICU beds, change the rate of flow between compartments.
+Our framework proposes a number of novel technical innovations:
+Learned transition rates
+: Instead of using static rates for transitions between compartments across all locations and times, we use machine-learned rates to map them. This allows us to take advantage of the vast amount of available data with informative signals, such as Google's COVID-19
+Community Mobility Reports
+, healthcare supply, demographics, and econometrics features.
+Explainability
+: Our framework provides explainability for decision makers, offering insights on disease propagation trends via its compartmental structure, and suggesting which factors may be most important for driving compartmental transitions.
+Expanded compartments
+: We add hospitalization, ICU, ventilator, and vaccine compartments and demonstrate efficient training despite data sparsity.
+Information sharing across locations
+: As opposed to fitting to an individual location, we have a single model for all locations in a country (e.g., >3000 US counties) with distinct dynamics and characteristics, and we show the benefit of transferring information across locations.
+Seq2seq modeling
+: We use a
+sequence-to-sequence model
+with a novel partial
+teacher forcing
+approach that minimizes amplified growth of errors into the future.
+Forecast Accuracy
+Each day, we train models to predict COVID-19 associated outcomes (primarily deaths and cases) 28 days into the future. We report the
+mean absolute percentage error
+(MAPE) for both a country-wide score and a location-level score, with both cumulative values and weekly incremental values for COVID-19 associated outcomes.
+We compare our framework with alternatives for the US from the
+COVID19 Forecast Hub
+. In MAPE, our models outperform all other 33 models except one — the ensemble forecast that also includes our model’s predictions, where the difference is not statistically significant.
+We also used prediction uncertainty to estimate whether a forecast is likely to be accurate. If we reject forecasts that the model considers uncertain, we can improve the accuracy of the forecasts that we do release. This is possible because our model has well-calibrated uncertainty.
+Mean average percentage error (MAPE, the lower the better) decreases as we remove uncertain forecasts, increasing accuracy.
+What-If Tool to Simulate Pandemic Management Policies and Strategies
+In addition to understanding the most probable scenario given past data, decision makers are interested in how different decisions could affect future outcomes, for example, understanding the impact of school closures, mobility restrictions and different vaccination strategies. Our framework allows counterfactual analysis by replacing the forecasted values for selected variables with their counterfactual counterparts. The results of our simulations reinforce the risk of prematurely relaxing non-pharmaceutical interventions (NPIs) until the rapid disease spreading is reduced. Similarly, the Japan simulations show that maintaining the State of Emergency while having a high vaccination rate greatly reduces infection rates.
+What-if simulations on the percent change of predicted exposed individuals assuming different non-pharmaceutical interventions (NPIs) for the prediction date of March 1, 2021 in Texas, Washington and South Carolina. Increased NPI restrictions are associated with a larger % reduction in the number of  exposed people.
+What-if simulations on the percent change of predicted exposed individuals assuming different vaccination rates for the prediction date of March 1, 2021 in Texas, Washington and South Carolina. Increased vaccination rate also plays a key role to reduce exposed count in these cases.
+Fairness Analysis
+To ensure that our models do not create or reinforce unfairly biased decision making, in alignment with our
+AI Principles
+, we performed a fairness analysis separately for forecasts in the
+US
+and
+Japan
+by quantifying whether the model's accuracy was worse on protected sub-groups. These categories include age, gender, income, and ethnicity in the US, and age, gender, income, and country of origin in Japan. In all cases, we demonstrated no consistent pattern of errors among these groups once we controlled for the number of COVID-19 deaths and cases that occur in each subgroup.
+Normalized errors by median income. The comparison between the two shows that patterns of errors don't persist once errors are normalized by cases.
+Left
+: Normalized errors by median income for the US.
+Right
+: Normalized errors by median income for Japan.
+Real-World Use Cases
+In addition to quantitative analyses to measure the performance of our models, we conducted a structured survey in the US and Japan to understand how organisations were using our model forecasts. In total, seven organisations responded with the following results on the applicability of the model.
+Organization type
+: Academia (3), Government (2), Private industry (2)
+Main user job role
+: Analyst/Scientist (3), Healthcare professional (1), Statistician (2), Managerial (1)
+Location
+: USA (4), Japan (3)
+Predictions used
+: Confirmed cases (7), Death (4), Hospitalizations (4), ICU (3), Ventilator (2), Infected (2)
+Model use case
+: Resource allocation (2), Business planning (2), scenario planning (1), General understanding of COVID spread (1), Confirm existing forecasts (1)
+Frequency of use
+: Daily (1), Weekly (1), Monthly (1)
+Was the model helpful?
+: Yes (7)
+To share a few examples, in the US, the Harvard Global Health Institute and Brown School of Public Health used the forecasts to help create COVID-19 testing targets that were used by
+the media
+to help inform the public. The US Department of Defense used the forecasts to help determine where to allocate resources, and to help take specific events into account. In Japan, the model was used to make business decisions. One large, multi-prefecture company with stores in more than 20 prefectures used the forecasts to better plan their sales forecasting, and to adjust store hours.
+Limitations and next steps
+Our approach has a few limitations. First, it is limited by available data, and we are only able to release daily forecasts as long as there is reliable, high-quality public data. For instance, public transportation usage could be very useful but that information is not publicly available. Second, there are limitations due to the model capacity of compartmental models as they cannot model very complex dynamics of Covid-19 disease propagation. Third, the distribution of case counts and deaths are very different between the US and Japan. For example, most of Japan's COVID-19 cases and deaths have been concentrated in a few of its 47 prefectures, with the others experiencing low values. This means that our per-prefecture models, which are trained to perform well across all Japanese prefectures, often have to strike a delicate balance between avoiding overfitting to noise while getting supervision from these relatively COVID-19-free prefectures.
+We have updated our models to take into account large changes in disease dynamics, such as the increasing number of vaccinations. We are also expanding to new engagements with city governments, hospitals, and private organizations. We hope that our public releases continue to help public and policy-makers address the challenges of the ongoing pandemic, and we hope that our method will be useful to epidemiologists and public health officials in this and future health crises.
+Acknowledgements
+This paper was the result of hard work from a variety of teams within Google and collaborators around the globe. We'd especially like to thank our paper co-authors from the School of Medicine at Keio University, Graduate School of Public Health at St Luke’s International University, and Graduate School of Medicine at The University of Tokyo.
+Self-Supervised Learning Advances Medical Image Classification
+Wednesday, October 13, 2021
+Posted by Shekoofeh Azizi, AI Resident, Google Research
+In recent years, there has been increasing interest in applying deep learning to medical imaging tasks, with exciting progress in various applications like
+radiology
+,
+pathology
+and
+dermatology
+. Despite the interest, it remains challenging to develop medical imaging models, because high-quality labeled data is often
+scarce
+due to the time-consuming effort needed to annotate medical images. Given this,
+transfer learning
+is a popular paradigm for building medical imaging models. With this approach, a model is first pre-trained using
+supervised learning
+on a large labeled dataset (like
+ImageNet
+) and then the learned generic representation is fine-tuned on in-domain medical data.
+Other more recent approaches that have proven successful in natural image recognition tasks, especially when labeled examples are scarce, use  self-supervised contrastive pre-training, followed by supervised fine-tuning (e.g.,
+SimCLR
+and
+MoCo
+). In pre-training with
+contrastive learning
+, generic representations are learned by simultaneously maximizing agreement between differently transformed views of the same image and minimizing agreement between transformed views of different images. Despite their successes, these contrastive learning methods have received limited attention in medical image analysis and their efficacy is yet to be explored.
+In “
+Big Self-Supervised Models Advance Medical Image Classification
+”, to appear at the
+International Conference on Computer Vision
+(ICCV 2021), we study the effectiveness of self-supervised contrastive learning as a pre-training strategy within the domain of medical image classification. We also propose Multi-Instance Contrastive Learning (MICLe), a novel approach that generalizes contrastive learning to leverage special characteristics of medical image datasets. We conduct experiments on two distinct medical image classification tasks: dermatology condition classification from digital camera images (27 categories) and multilabel chest X-ray classification (5 categories). We observe that self-supervised  learning  on  ImageNet,  followed  by  additional self-supervised learning on unlabeled domain-specific medical images, significantly improves the accuracy of medical image classifiers. Specifically, we demonstrate that self-supervised pre-training outperforms supervised pre-training, even when the full ImageNet dataset (14M images and 21.8K classes) is used for supervised pre-training.
+SimCLR and Multi Instance Contrastive Learning (MICLe)
+Our approach consists of three steps: (1) self-supervised pre-training on unlabeled natural images (using SimCLR); (2) further self-supervised pre-training using unlabeled medical data (using either SimCLR or MICLe); followed by (3) task-specific supervised fine-tuning using labeled medical data.
+Our approach comprises three steps: (1) Self-supervised pre-training on unlabeled ImageNet using
+SimCLR
+(2) Additional self-supervised pre-training using unlabeled medical images. If multiple images of each medical condition are available,  a novel Multi-Instance Contrastive Learning (MICLe) strategy is used to construct more informative positive pairs based on different images. (3) Supervised fine-tuning on labeled medical images. Note that unlike step (1), steps (2) and (3) are task and dataset specific.
+After the initial pre-training with SimCLR on unlabeled natural images is complete, we train the model to capture the special characteristics of medical image datasets. This, too, can be done with SimCLR, but this method constructs positive pairs only through augmentation and does not readily leverage patients' meta data for positive pair construction. Alternatively, we use  MICLe, which  uses multiple images of the underlying pathology for each patient case, when available, to construct more informative positive pairs for self-supervised learning. Such multi-instance data is often available in medical imaging datasets — e.g., frontal and lateral views of mammograms, retinal fundus images from each eye, etc.
+Given multiple images of a given patient case, MICLe constructs a positive pair for self-supervised contrastive learning by drawing two crops from two distinct images from the same patient case. Such images may be taken from different viewing angles and show different body parts with the same underlying pathology. This presents a great opportunity for self-supervised learning algorithms to learn representations that are robust to changes of viewpoint, imaging conditions, and other confounding factors in a direct way. MICLe does not require class label information and only relies on different images of an underlying pathology, the type of which may be unknown.
+MICLe generalizes contrastive learning to leverage special characteristics of medical image datasets (patient metadata) to create realistic augmentations, yielding further performance boost of image classifiers.
+Combining these self-supervised learning strategies, we show that even in a highly competitive production setting we can achieve a sizable gain of 6.7% in top-1 accuracy on dermatology skin condition classification and an improvement of 1.1% in
+mean AUC
+on chest X-ray classification, outperforming strong supervised baselines pre-trained on ImageNet (the prevailing protocol for training medical image analysis models).  In addition, we show that self-supervised models are robust to distribution shift and can learn efficiently with only a small number of labeled medical images.
+Comparison of Supervised and Self-Supervised Pre-training
+Despite its simplicity, we observe that pre-training with MICLe consistently improves the performance of dermatology classification over the original method of pre-training with SimCLR under different pre-training dataset and base network architecture choices. Using MICLe for pre-training, translates to (1.18 ± 0.09)% increase in top-1 accuracy for dermatology classification over using SimCLR. The results demonstrate the benefit accrued from utilizing additional metadata or domain knowledge to construct more semantically meaningful augmentations for contrastive pre-training. In addition, our results suggest that
+wider and deeper
+models
+yield greater performance gains
+, with ResNet-152 (2x width) models often outperforming ResNet-50 (1x width) models or smaller counterparts.
+Comparison of supervised and self-supervised pre-training, followed by supervised fine-tuning using two architectures on dermatology and chest X-ray classification. Self-supervised learning utilizes unlabeled domain-specific medical images and significantly outperforms  supervised ImageNet pre-training.
+Improved Generalization with Self-Supervised Models
+For each task we perform pretraining and fine-tuning using the in-domain unlabeled and labeled data respectively. We also use another dataset obtained in a different clinical setting  as a shifted dataset to further evaluate the robustness of our method to out-of-domain data. For the chest X-ray task, we note that self-supervised pre-training with either ImageNet or
+CheXpert
+data improves generalization, but stacking them both yields further gains. As expected, we also note that when only using ImageNet for self-supervised pre-training, the model performs worse compared to using only in-domain data for pre-training.
+To test the performance under distribution shift, for each task, we held out additional labeled datasets for testing that were collected under different clinical settings. We find that the performance improvement in the distribution-shifted dataset (
+ChestX-ray14
+) by using self-supervised pre-training (both using ImageNet and CheXpert data) is more pronounced than the original improvement on the CheXpert dataset. This is a valuable finding, as generalization under distribution shift is of paramount importance to clinical applications. On the dermatology task, we observe similar trends for a separate shifted dataset that was collected in skin cancer clinics and had a higher prevalence of malignant conditions. This demonstrates that the robustness of the self-supervised representations to distribution shifts is consistent across tasks.
+Evaluation of models on distribution-shifted datasets for the chest-xray interpretation task. We use the model trained on in-domain data to make predictions on an additional shifted dataset without any further fine-tuning (zero-shot transfer learning). We observe that self-supervised pre-training leads to better representations that are more robust to distribution shifts.
+Evaluation of models on distribution-shifted datasets for the dermatology task. Our results generally suggest that self-supervised pre-trained models can generalize better to distribution shifts with MICLe pre-training leading to the most gains.
+Improved Label Efficiency
+We further investigate the label-efficiency of the self-supervised models for medical image classification by fine-tuning the models on different fractions of labeled training data. We use label fractions ranging from 10% to 90% for both Derm and CheXpert training datasets and examine how the performance varies using the different available label fractions for the dermatology task. First, we observe that pre-training using self-supervised models can compensate for low label efficiency for medical image classification, and across the sampled label fractions, self-supervised models consistently outperform the supervised baseline. These results also suggest that MICLe yields proportionally higher gains when fine-tuning with fewer labeled examples. In fact, MICLe is able to match baselines using only 20% of the training data for ResNet-50 (4x) and 30% of the training data for ResNet152 (2x).
+Top-1 accuracy for dermatology condition classification for MICLe, SimCLR, and supervised models under different unlabeled pre-training datasets and varied sizes of label fractions. MICLe is able to match baselines using only 20% of the training data for ResNet-50 (4x).
+Conclusion
+Supervised pre-training on natural image datasets is commonly used to improve medical image classification. We investigate an alternative strategy based on self-supervised pre-training on unlabeled natural and medical images and find that it can significantly improve upon supervised pre-training, the standard paradigm for training medical image analysis models. This approach can lead to models that are more accurate and label efficient and are robust to distribution shifts. In addition, our proposed Multi-Instance Contrastive Learning method (MICLe) enables the use of additional metadata to create realistic augmentations, yielding further performance boost of image classifiers.
+Self-supervised pre-training is much more scalable than supervised pre-training because class label annotation is not required. We hope this paper will help popularize the use of self-supervised approaches in medical image analysis yielding label efficient and robust models suited for clinical deployment at scale in the real world.
+Acknowledgements
+This work involved collaborative efforts from a multidisciplinary team of researchers, software engineers, clinicians, and cross-functional contributors across Google Health and Google Brain. We thank our co-authors: Basil Mustafa, Fiona Ryan, Zach Beaver, Jan Freyberg, Jon Deaton, Aaron Loh, Alan Karthikesalingam, Simon Kornblith, Ting Chen, Vivek Natarajan, and Mohammad Norouzi. We also thank Yuan Liu from Google Health for valuable feedback and our partners for access to  the datasets used in the research.
+Google at ICCV 2021
+Monday, October 11, 2021
+Posted by Cat Armato, Program Manager, Google Research
+The
+International Conference on Computer Vision 2021
+(ICCV 2021), one of the world's premier conferences on computer vision, starts this week. A Champion Sponsor and leader in computer vision research, Google will have a strong presence at ICCV 2021 with more than 50 research presentations and involvement in the organization of a number of
+workshops
+and
+tutorials
+.
+If you are attending ICCV this year, we hope you’ll check out the work of our researchers who are actively pursuing the latest innovations in computer vision. Learn more about our research being presented in the list below (Google affilitation in
+bold
+).
+Organizing Committee
+Diversity and Inclusion Chair:
+Negar Rostamzadeh
+Area Chairs:
+Andrea Tagliasacchi, Boqing Gong, Ce Liu, Dilip Krishnan, Jordi Pont-Tuset, Michael Rubinstein, Michael S. Ryoo, Negar Rostamzadeh, Noah Snavely, Rodrigo Benenson, Tsung-Yi Lin, Vittorio Ferrari
+Publications
+MosaicOS: A Simple and Effective Use of Object-Centric Images for Long-Tailed Object Detection
+Cheng Zhang, Tai-Yu Pan,
+Yandong Li
+, Hexiang Hu, Dong Xuan,
+Soravit Changpinyo
+,
+Boqing Gong
+, Wei-Lun Chao
+Learning to Resize Images for Computer Vision Tasks
+Hossein Talebi, Peyman Milanfar
+Joint Representation Learning and Novel Category Discovery on Single- and Multi-Modal Data
+Xuhui Jia, Kai Han, Yukun Zhu, Bradley Green
+Explaining in Style: Training a GAN to Explain a Classifier in StyleSpace
+Oran Lang, Yossi Gandelsman, Michal Yarom, Yoav Wald, Gal Elidan, Avinatan Hassidim, William T. Freeman, Phillip Isola, Amir Globerson, Michal Irani, Inbar Mosseri
+Learning Fast Sample Re-weighting without Reward Data
+Zizhao Zhang, Tomas Pfister
+Contrastive Multimodal Fusion with TupleInfoNCE
+Yunze Liu, Qingnan Fan, Shanghang Zhang, Hao Dong,
+Thomas Funkhouser
+,
+Li Yi
+Learning Temporal Dynamics from Cycles in Narrated Video
+Dave Epstein*, Jiajun Wu,
+Cordelia Schmid
+,
+Chen Sun
+Patch Craft: Video Denoising by Deep Modeling and Patch Matching
+Gregory Vaksman,
+Michael Elad
+,
+Peyman Milanfar
+How to Train Neural Networks for Flare Removal
+Yicheng Wu*,
+Qiurui He
+,
+Tianfan Xue
+,
+Rahul Garg
+,
+Jiawen Chen,
+Ashok Veeraraghavan,
+Jonathan T. Barron
+Learning to Reduce Defocus Blur by Realistically Modeling Dual-Pixel Data
+Abdullah Abuolaim*,
+Mauricio Delbracio
+,
+Damien Kelly
+, Michael S. Brown,
+Peyman Milanfar
+Hybrid Neural Fusion for Full-Frame Video Stabilization
+Yu-Lun Liu,
+Wei-Sheng Lai
+,
+Ming-Hsuan Yang
+, Yung-Yu Chuang, Jia-Bin Huang
+A Dark Flash Normal Camera
+Zhihao Xia*,
+Jason Lawrence, Supreeth Achar
+Efficient Large Scale Inlier Voting for Geometric Vision Problems
+Dror Aiger, Simon Lynen, Jan Hosang, Bernhard Zeisl
+Big Self-Supervised Models Advance Medical Image Classification
+Shekoofeh Azizi, Basil Mustafa, Fiona Ryan*, Zachary Beaver, Jan Freyberg, Jonathan Deaton, Aaron Loh, Alan Karthikesalingam, Simon Kornblith, Ting Chen, Vivek Natarajan, Mohammad Norouzi
+Physics-Enhanced Machine Learning for Virtual Fluorescence Microscopy
+Colin L. Cooke, Fanjie Kong, Amey Chaware, Kevin C. Zhou, Kanghyun Kim, Rong Xu, D.
+Michael Ando, Samuel J. Yang
+, Pavan Chandra Konda, Roarke Horstmeyer
+Retrieve in Style: Unsupervised Facial Feature Transfer and Retrieval
+Min Jin Chong,
+Wen-Sheng Chu
+,
+Abhishek Kumar
+, David Forsyth
+Deep Survival Analysis with Longitudinal X-Rays for COVID-19
+Michelle Shu, Richard Strong Bowen, Charles Herrmann, Gengmo Qi, Michele Santacatterina,
+Ramin Zabih
+MUSIQ: Multi-Scale Image Quality Transformer
+Junjie Ke, Qifei Wang, Yilin Wang, Peyman Milanfar, Feng Yang
+imGHUM: Implicit Generative Models of 3D Human Shape and Articulated Pose
+Thiemo Alldieck, Hongyi Xu, Cristian Sminchisescu
+Deep Hybrid Self-Prior for Full 3D Mesh Generation
+Xingkui Wei, Zhengqing Chen, Yanwei Fu, Zhaopeng Cui,
+Yinda Zhang
+Differentiable Surface Rendering via Non-Differentiable Sampling
+Forrester Cole, Kyle Genova, Avneesh Sud, Daniel Vlasic, Zhoutong Zhang
+A Lazy Approach to Long-Horizon Gradient-Based Meta-Learning
+Muhammad Abdullah Jamal, Liqiang Wang,
+Boqing Gong
+ViViT: A Video Vision Transformer
+Anurag Arnab, Mostafa Dehghani, Georg Heigold, Chen Sun, Mario Lučić, Cordelia Schmid
+The Surprising Impact of Mask-Head Architecture on Novel Class Segmentation
+(see the
+blog post
+)
+Vighnesh Birodkar, Zhichao Lu, Siyang Li, Vivek Rathod, Jonathan Huang
+Generalize Then Adapt: Source-Free Domain Adaptive Semantic Segmentation
+Jogendra Nath Kundu, Akshay Kulkarni, Amit Singh,
+Varun Jampani
+, R. Venkatesh Babu
+Unified Graph Structured Models for Video Understanding
+Anurag Arnab, Chen Sun, Cordelia Schmid
+The Many Faces of Robustness: A Critical Analysis of Out-of-Distribution Generalization
+Dan Hendrycks, Steven Basart, Norman Mu, Saurav Kadavath,
+Frank Wang
+,
+Evan Dorundo
+, Rahul Desai, Tyler Zhu, Samyak Parajuli, Mike Guo, Dawn Song, Jacob Steinhardt,
+Justin Gilmer
+Learning Rare Category Classifiers on a Tight Labeling Budget
+Ravi Teja Mullapudi, Fait Poms, William R. Mark, Deva Ramanan, Kayvon Fatahalian
+Composable Augmentation Encoding for Video Representation Learning
+Chen Sun, Arsha Nagrani, Yonglong Tian, Cordelia Schmid
+Multi-Task Self-Training for Learning General Representations
+Golnaz Ghiasi, Barret Zoph, Ekin D. Cubuk, Quoc V. Le, Tsung-Yi Lin
+With a Little Help From My Friends: Nearest-Neighbor Contrastive Learning of Visual Representations
+Debidatta Dwibedi, Yusuf Aytar, Jonathan Tompson, Pierre Sermanet, Andrew Zisserman
+Understanding Robustness of Transformers for Image Classification
+Srinadh Bhojanapalli, Ayan Chakrabarti, Daniel Glasner, Daliang Li, Thomas Unterthiner, Andreas Veit
+Impact of Aliasing on Generalization in Deep Convolutional Networks
+Cristina Vasconcelos, Hugo Larochelle, Vincent Dumoulin, Rob Romijnders, Nicolas Le Roux, Ross Goroshin
+von Mises-Fisher Loss: An Exploration of Embedding Geometries for Supervised Learning
+Tyler R. Scott*,
+Andrew C. Gallagher
+,
+Michael C. Mozer
+Contrastive Learning for Label Efficient Semantic Segmentation
+Xiangyun Zhao*,
+Raviteja Vemulapalli
+,
+Philip Andrew Mansfield
+,
+Boqing Gong
+,
+Bradley Green
+,
+Lior Shapira
+, Ying Wu
+Interacting Two-Hand 3D Pose and Shape Reconstruction from Single Color Image
+Baowen Zhang, Yangang Wang, Xiaoming Deng,
+Yinda Zhang,
+Ping Tan, Cuixia Ma, Hongan Wang
+Telling the What While Pointing to the Where: Multimodal Queries for Image Retrieval
+Soravit Changpinyo, Jordi Pont-Tuset, Vittorio Ferrari, Radu Soricut
+SO-Pose: Exploiting Self-Occlusion for Direct 6D Pose Estimation
+Yan Di,
+Fabian Manhardt
+, Gu Wang, Xiangyang Ji, Nassir Navab,
+Federico Tombari
+Patch2CAD: Patchwise Embedding Learning for In-the-Wild Shape Retrieval from a Single Image
+Weicheng Kuo, Anelia Angelova, Tsung-Yi Lin, Angela Dai
+NeRD: Neural Reflectance Decomposition From Image Collections
+Mark Boss, Raphael Braun,
+Varun Jampani
+,
+Jonathan T. Barron
+,
+Ce Liu,
+Hendrik P.A. Lensch
+THUNDR: Transformer-Based 3D Human Reconstruction with Markers
+Mihai Zanfir, Andrei Zanfir, Eduard Gabriel Bazavan, William T. Freeman, Rahul Sukthankar, Cristian Sminchisescu
+Discovering 3D Parts from Image Collections
+Chun-Han Yao, Wei-Chih Hung,
+Varun Jampani
+,
+Ming-Hsuan Yang
+Multiresolution Deep Implicit Functions for 3D Shape Representation
+Zhang Chen*,
+Yinda Zhang
+,
+Kyle Genova
+,
+Sean Fanello
+,
+Sofien Bouaziz
+,
+Christian Hane
+,
+Ruofei Du
+,
+Cem Keskin
+,
+Thomas Funkhouser
+,
+Danhang Tang
+AI Choreographer: Music Conditioned 3D Dance Generation With AIST++
+(see the
+blog post
+)
+Ruilong Li*,
+Shan Yang
+,
+David A. Ross
+,
+Angjoo Kanazawa
+Learning Object-Compositional Neural Radiance Field for Editable Scene Rendering
+Bangbang Yang, Han Zhou,
+Yinda Zhang
+, Hujun Bao, Yinghao Xu, Guofeng Zhang, Yijin Li, Zhaopeng Cui
+VariTex: Variational Neural Face Textures
+Marcel C. Buhler,
+Abhimitra Meka
+,
+Gengyan Li
+,
+Thabo Beeler
+, Otmar Hilliges
+Pathdreamer: A World Model for Indoor Navigation
+(see the
+blog post
+)
+Jing Yu Koh, Honglak Lee, Yinfei Yang, Jason Baldridge, Peter Anderson
+4D-Net for Learned Multi-Modal Alignment
+AJ Piergiovanni, Vincent Casser, Michael S. Ryoo, Anelia Angelova
+Episodic Transformer for Vision-and-Language Navigation
+Alexander Pashevich*,
+Cordelia Schmid
+,
+Chen Sun
+Graph-to-3D: End-to-End Generation and Manipulation of 3D Scenes Using Scene Graphs
+Helisa Dhamo,
+Fabian Manhardt
+, Nassir Navab,
+Federico Tombari
+Unconditional Scene Graph Generation
+Sarthak Garg, Helisa Dhamo, Azade Farshad, Sabrina Musatian, Nassir Navab,
+Federico Tombari
+Panoptic Narrative Grounding
+Cristina González, Nicolás Ayobi, Isabela Hernández, José Hernández,
+Jordi Pont-Tuset
+, Pablo Arbeláez
+Cross-Camera Convolutional Color Constancy
+Mahmoud Afifi*,
+Jonathan T. Barron
+,
+Chloe LeGendre
+,
+Yun-Ta Tsai
+,
+Francois Bleibel
+Defocus Map Estimation and Deblurring from a Single Dual-Pixel Image
+Shumian Xin*,
+Neal Wadhwa
+,
+Tianfan Xue
+,
+Jonathan T. Barron
+,
+Pratul P. Srinivasan
+, Jiawen Chen, Ioannis Gkioulekas,
+Rahul Garg
+COMISR: Compression-Informed Video Super-Resolution
+Yinxiao Li, Pengchong Jin, Feng Yang, Ce Liu, Ming-Hsuan Yang, Peyman Milanfar
+Mip-NeRF: A Multiscale Representation for Anti-Aliasing Neural Radiance Fields
+Jonathan T. Barron, Ben Mildenhall, Matthew Tancik, Peter Hedman, Ricardo Martin-Brualla, Pratul P. Srinivasan
+Nerfies: Deformable Neural Radiance Fields
+Keunhong Park*,
+Utkarsh Sinha
+,
+Jonathan T. Barron
+,
+Sofien Bouaziz
+,
+Dan B Goldman
+,
+Steven M. Seitz
+,
+Ricardo Martin-Brualla
+Baking Neural Radiance Fields for Real-Time View Synthesis
+Peter Hedman, Pratul P. Srinivasan, Ben Mildenhall, Jonathan T. Barron, Paul Debevec
+Stacked Homography Transformations for Multi-View Pedestrian Detection
+Liangchen Song, Jialian Wu, Ming Yang, Qian Zhang,
+Yuan Li
+, Junsong Yuan
+COTR: Correspondence Transformer for Matching Across Images
+Wei Jiang,
+Eduard Trulls
+,
+Jan Hosang
+,
+Andrea Tagliasacchi
+, Kwang Moo Yi
+Large Scale Interactive Motion Forecasting for Autonomous Driving: The Waymo Open Motion Dataset
+Scott Ettinger, Shuyang Cheng,
+Benjamin Caine
+, Chenxi Liu, Hang Zhao, Sabeek Pradhan, Yuning Chai, Ben Sapp, Charles R. Qi, Yin Zhou, Zoey Yang, Aurélien Chouard, Pei Sun,
+Jiquan Ngiam
+,
+Vijay Vasudevan
+, Alexander McCauley,
+Jonathon Shlens
+, Dragomir Anguelov
+Low-Shot Validation: Active Importance Sampling for Estimating Classifier Performance on Rare Categories
+Fait Poms, Vishnu Sarukkai, Ravi Teja Mullapudi, Nimit S. Sohoni,
+William R. Mark
+, Deva Ramanan, Kayvon Fatahalian
+Vector Neurons: A General Framework for SO(3)-Equivariant Networks
+Congyue Deng, Or Litany, Yueqi Duan, Adrien Poulenard,
+Andrea Tagliasacchi
+, Leonidas J. Guibas
+SLIDE: Single Image 3D Photography with Soft Layering and Depth-Aware Inpainting
+Varun Jampani, Huiwen Chang, Kyle Sargent, Abhishek Kar, Richard Tucker, Michael Krainin,
+Dominik Kaeser
+,
+William T. Freeman
+,
+David Salesin
+,
+Brian Curless
+,
+Ce Liu
+DeepPanoContext: Panoramic 3D Scene Understanding with Holistic Scene Context Graph and Relation-Based Optimization
+Cheng Zhang, Zhaopeng Cui, Cai Chen, Shuaicheng Liu, Bing Zeng, Hujun Bao,
+Yinda Zhang
+Infinite Nature: Perpetual View Generation of Natural Scenes from a Single Image
+Andrew Liu, Richard Tucker, Varun Jampani, Ameesh Makadia, Noah Snavely, Angjoo Kanazawa
+Workshops
+(
+only Google affiliations are noted
+)
+Visual Inductive Priors for Data-Efficient Deep Learning Workshop
+Speakers:
+Ekin Dogus Cubuk, Chelsea Finn
+Instance-Level Recognition Workshop
+Organizers:
+Andre Araujo, Cam Askew, Bingyi Cao, Jack Sim, Tobias Weyand
+Unsup3D: Unsupervised 3D Learning in the Wild
+Speakers:
+Adel Ahmadyan, Noah Snavely, Tali Dekel
+Embedded and Real-World Computer Vision in Autonomous Driving (ERCVAD 2021)
+Speakers:
+Mingxing Tan
+Adversarial Robustness in the Real World
+Speakers:
+Nicholas Carlini
+Neural Architectures: Past, Present and Future
+Speakers:
+Been Kim, Hanxiao Liu
+Organizers:
+Azade Nazi, Mingxing Tan, Quoc V. Le
+Computational Challenges in Digital Pathology
+Organizers:
+Craig Mermel
+,
+Po-Hsuan Cameron Chen
+Interactive Labeling and Data Augmentation for Vision
+Speakers:
+Vittorio Ferrari
+Map-Based Localization for Autonomous Driving
+Speakers:
+Simon Lynen
+DeeperAction: Challenge and Workshop on Localized and Detailed Understanding of Human Actions in Videos
+Speakers:
+Chen Sun
+Advisors:
+Rahul Sukthankar
+Differentiable 3D Vision and Graphics
+Speakers:
+Angjoo Kanazawa
+Deep Multi-Task Learning in Computer Vision
+Speakers:
+Chelsea Finn
+Computer Vision for AR/VR
+Speakers:
+Matthias Grundmann, Ira Kemelmacher-Shlizerman
+GigaVision: When Gigapixel Videography Meets Computer Vision
+Organizers:
+Feng Yang
+Human Interaction for Robotic Navigation
+Speakers:
+Peter Anderson
+Advances in Image Manipulation Workshop and Challenges
+Organizers:
+Ming-Hsuan Yang
+More Exploration, Less Exploitation (MELEX)
+Speakers:
+Angjoo Kanazawa
+Structural and Compositional Learning on 3D Data
+Speakers:
+Thomas Funkhouser, Kyle Genova
+Organizers:
+Fei Xia
+Simulation Technology for Embodied AI
+Organizers:
+Li Yi
+Video Scene Parsing in the Wild Challenge Workshop
+Speakers:
+Liang-Chieh (Jay) Chen
+Structured Representations for Video Understanding
+Organizers:
+Cordelia Schmid
+Closing the Loop Between Vision and Language
+Speakers:
+Cordelia Schmid
+Segmenting and Tracking Every Point and Pixel: 6th Workshop on Benchmarking Multi-Target Tracking
+Organizers:
+Jun Xie, Liang-Chieh Chen
+AI for Creative Video Editing and Understanding
+Speakers:
+Angjoo Kanazawa
+,
+Irfan Essa
+BEHAVIOR: Benchmark for Everyday Household Activities in Virtual, Interactive, and Ecological Environments
+Speakers:
+Chelsea Finn
+Organizers:
+Fei Xia
+Computer Vision for Automated Medical Diagnosis
+Organizers:
+Maithra Raghu
+Computer Vision for the Factory Floor
+Speakers:
+Cordelia Schmid
+Tutorials
+(
+only Google affiliations are noted
+)
+Towards Robust, Trustworthy, and Explainable Computer Vision
+Speakers:
+Sara Hooker
+Multi-Modality Learning from Videos and Beyond
+Organizers:
+Arsha Nagrani
+Tutorial on Large Scale Holistic Video Understanding
+Organizers:
+David Ross
+Efficient Video Understanding: State of the Art, Challenges, and Opportunities
+Organizers:
+Arsha Nagrani
+* Indicates work done while at Google
+
+
+
+Labels
+
+accessibility
+ACL
+ACM
+Acoustic Modeling
+Adaptive Data Analysis
+ads
+adsense
+adwords
+Africa
+AI
+AI for Social Good
+Algorithms
+Android
+Android Wear
+API
+App Engine
+App Inventor
+April Fools
+Art
+Audio
+Augmented Reality
+Australia
+Automatic Speech Recognition
+AutoML
+Awards
+BigQuery
+Cantonese
+Chemistry
+China
+Chrome
+Cloud Computing
+Collaboration
+Compression
+Computational Imaging
+Computational Photography
+Computer Science
+Computer Vision
+conference
+conferences
+Conservation
+correlate
+Course Builder
+crowd-sourcing
+CVPR
+Data Center
+Data Discovery
+data science
+datasets
+Deep Learning
+DeepDream
+DeepMind
+distributed systems
+Diversity
+Earth Engine
+economics
+Education
+Electronic Commerce and Algorithms
+electronics
+EMEA
+EMNLP
+Encryption
+entities
+Entity Salience
+Environment
+Europe
+Exacycle
+Expander
+Faculty Institute
+Faculty Summit
+Flu Trends
+Fusion Tables
+gamification
+Gboard
+Gmail
+Google Accelerated Science
+Google Books
+Google Brain
+Google Cloud Platform
+Google Docs
+Google Drive
+Google Genomics
+Google Maps
+Google Photos
+Google Play Apps
+Google Science Fair
+Google Sheets
+Google Translate
+Google Trips
+Google Voice Search
+Google+
+Government
+grants
+Graph
+Graph Mining
+Hardware
+HCI
+Health
+High Dynamic Range Imaging
+ICCV
+ICLR
+ICML
+ICSE
+Image Annotation
+Image Classification
+Image Processing
+Inbox
+India
+Information Retrieval
+internationalization
+Internet of Things
+Interspeech
+IPython
+Journalism
+jsm
+jsm2011
+K-12
+Kaggle
+KDD
+Keyboard Input
+Klingon
+Korean
+Labs
+Linear Optimization
+localization
+Low-Light Photography
+Machine Hearing
+Machine Intelligence
+Machine Learning
+Machine Perception
+Machine Translation
+Magenta
+MapReduce
+market algorithms
+Market Research
+materials science
+Mixed Reality
+ML
+ML Fairness
+MOOC
+Moore's Law
+Multimodal Learning
+NAACL
+Natural Language Processing
+Natural Language Understanding
+Network Management
+Networks
+Neural Networks
+NeurIPS
+Nexus
+Ngram
+NIPS
+NLP
+On-device Learning
+open source
+operating systems
+Optical Character Recognition
+optimization
+osdi
+osdi10
+patents
+Peer Review
+ph.d. fellowship
+PhD Fellowship
+PhotoScan
+Physics
+PiLab
+Pixel
+Policy
+Professional Development
+Proposals
+Public Data Explorer
+publication
+Publications
+Quantum AI
+Quantum Computing
+Recommender Systems
+Reinforcement Learning
+renewable energy
+Research
+Research Awards
+resource optimization
+Responsible AI
+Robotics
+schema.org
+Search
+search ads
+Security and Privacy
+Self-Supervised Learning
+Semantic Models
+Semi-supervised Learning
+SIGCOMM
+SIGMOD
+Site Reliability Engineering
+Social Networks
+Software
+Sound Search
+Speech
+Speech Recognition
+statistics
+Structured Data
+Style Transfer
+Supervised Learning
+Systems
+TensorBoard
+TensorFlow
+TPU
+Translate
+trends
+TTS
+TV
+UI
+University Relations
+UNIX
+Unsupervised Learning
+User Experience
+video
+Video Analysis
+Virtual Reality
+Vision Research
+Visiting Faculty
+Visualization
+VLDB
+Voice Search
+Wiki
+wikipedia
+WWW
+Year in Review
+YouTube
+
+Archive
+
+
+
+2021
+Oct
+Sep
+Aug
+Jul
+Jun
+May
+Apr
+Mar
+Feb
+Jan
+
+
+2020
+Dec
+Nov
+Oct
+Sep
+Aug
+Jul
+Jun
+May
+Apr
+Mar
+Feb
+Jan
+
+
+2019
+Dec
+Nov
+Oct
+Sep
+Aug
+Jul
+Jun
+May
+Apr
+Mar
+Feb
+Jan
+
+
+2018
+Dec
+Nov
+Oct
+Sep
+Aug
+Jul
+Jun
+May
+Apr
+Mar
+Feb
+Jan
+
+
+2017
+Dec
+Nov
+Oct
+Sep
+Aug
+Jul
+Jun
+May
+Apr
+Mar
+Feb
+Jan
+
+
+2016
+Dec
+Nov
+Oct
+Sep
+Aug
+Jul
+Jun
+May
+Apr
+Mar
+Feb
+Jan
+
+
+2015
+Dec
+Nov
+Oct
+Sep
+Aug
+Jul
+Jun
+May
+Apr
+Mar
+Feb
+Jan
+
+
+2014
+Dec
+Nov
+Oct
+Sep
+Aug
+Jul
+Jun
+May
+Apr
+Mar
+Feb
+Jan
+
+
+2013
+Dec
+Nov
+Oct
+Sep
+Aug
+Jul
+Jun
+May
+Apr
+Mar
+Feb
+Jan
+
+
+2012
+Dec
+Oct
+Sep
+Aug
+Jul
+Jun
+May
+Apr
+Mar
+Feb
+Jan
+
+
+2011
+Dec
+Nov
+Sep
+Aug
+Jul
+Jun
+May
+Apr
+Mar
+Feb
+Jan
+
+
+2010
+Dec
+Nov
+Oct
+Sep
+Aug
+Jul
+Jun
+May
+Apr
+Mar
+Feb
+Jan
+
+
+2009
+Dec
+Nov
+Aug
+Jul
+Jun
+May
+Apr
+Mar
+Feb
+Jan
+
+
+2008
+Dec
+Nov
+Oct
+Sep
+Jul
+May
+Apr
+Mar
+Feb
+
+
+2007
+Oct
+Sep
+Aug
+Jul
+Jun
+Feb
+
+
+2006
+Dec
+Nov
+Sep
+Aug
+Jul
+Jun
+Apr
+Mar
+Feb
+Feed
+Follow @googleai
+Give us feedback in our
+Product Forums
+.
+Google
+Privacy
+Terms
+LINKSKS *****************************************
+http://ai.googleblog.com/
+/.
+http://ai.googleblog.com/2021/10/how-underspecification-presents.html
+https://arxiv.org/abs/2011.03395
+https://www.jmlr.org/
+https://ai.google/responsibilities/responsible-ai-practices/?category=fairness
+https://www.google.com/url?q=https://ai.googleblog.com/2021/10/baselines-for-uncertainty-and.html&sa=D&source=docs&ust=1634314888409000&usg=AOvVaw1A3Ol1JFO2iVxTQLpFKG-w
+https://www.image-net.org/index.php
+https://arxiv.org/abs/1903.12261
+https://arxiv.org/abs/1605.07146
+https://ai.googleblog.com/2020/05/open-sourcing-bit-exploring-large-scale.html
+https://arxiv.org/abs/1707.02968
+https://blogger.googleusercontent.com/img/a/AVvXsEg1qxPHwOGsIdNpVwuIZnVsXwR-oTDQywpiv_4V4s9C8lqwXD_l2H-uPUJvTM_sTHIvEX4N8LGsJkQw1xJBY94banaVjRjCCuPJ6l8NBF-C9ay_LAMNN9A58YkMs9tH_K5JUbD7QaW0jEeCc5agDGgRcJIw6odOBtqUa8rCUyF6tCWzotq0jAcoE0ezgw=s1190
+https://en.wikipedia.org/wiki/Diabetic_retinopathy
+https://en.wikipedia.org/wiki/Macular_edema
+https://en.wikipedia.org/wiki/Fundus_(eye)
+https://www.equator-network.org/reporting-guidelines/stard/
+https://www.equator-network.org/reporting-guidelines/tripod-statement/
+https://bmjopen.bmj.com/content/11/6/e047709
+https://bmjopen.bmj.com/content/11/7/e048008
+https://www.fda.gov/medical-devices/device-advice-comprehensive-regulatory-assistance/overview-device-regulation
+https://www.ema.europa.eu/en/human-regulatory/overview/medical-devices
+https://blogger.googleusercontent.com/img/a/AVvXsEiJ4Gde-wrksPPLq91hDGUSXaK291BRz2kx6DpVrSVlvxHxkIwYoecQkL-YJTt98_7V4DKriEGs0s0i1fwVNizeUPOKKf-bghA4w7nbpcaoDcJRoKCKQgIP5a-12bJFkYiU5D3PPanUPND9gCZuaQ7r4RwoHc7-PZPHnr9gUnhn2nxMRoxLamF1MRCKDQ=s1172
+https://ai.googleblog.com/2018/11/open-sourcing-bert-state-of-art-pre.html
+https://ai.googleblog.com/2020/10/measuring-gendered-correlations-in-pre.html
+https://www.nature.com/articles/s41586-019-1390-1
+http://ai.googleblog.com/2021/10/simvlm-simple-visual-language-model-pre.html
+https://ai.googleblog.com/2021/05/cross-modal-contrastive-learning-for.html
+https://ai.googleblog.com/2021/05/crisscrossed-captions-semantic.html
+https://arxiv.org/abs/2107.06912
+https://en.wikipedia.org/wiki/Feature_(machine_learning)
+https://papers.nips.cc/paper/2015/file/14bfa6bb14875e45bba028a21ed38046-Paper.pdf
+https://en.wikipedia.org/wiki/Region_of_interest
+https://arxiv.org/abs/2108.10904
+https://ai.googleblog.com/2021/05/align-scaling-up-visual-and-vision.html
+https://en.wikipedia.org/wiki/Zero-shot_learning
+https://en.wikipedia.org/wiki/Question_answering
+https://en.wikipedia.org/wiki/BERT_(language_model)
+https://arxiv.org/abs/1810.04805
+https://openreview.net/pdf?id=YicbFdNTTy
+https://ai.googleblog.com/2017/08/transformer-novel-neural-network.html
+https://ai.googleblog.com/2021/09/toward-fast-and-accurate-neural.html
+https://arxiv.org/abs/1512.03385
+https://blogger.googleusercontent.com/img/a/AVvXsEjImzuR_KOltETLf3c7b6wtakOxk6D91bXakt9hjnssLZGNmSau7WMd5M8TTav2U_hMl8JQK8a-xP3cdvyMKmZUK5qetoJP2HlCgHPwTh9Jn5U7xagaU2CDks1RgAc2d3XiJ29sj-hFjk-JdQiUCZY0s8f0stqBSeRcoSdQE1aIfrXsVwLCuwu1HhOEug=s1614
+https://ai.googleblog.com/2021/05/align-scaling-up-visual-and-vision.html
+https://www.tensorflow.org/datasets/catalog/c4
+https://arxiv.org/abs/1910.10683
+https://visualqa.org/challenge.html
+https://lil.nlp.cornell.edu/nlvr/
+http://SNLI-VE
+https://github.com/tylin/coco-caption
+https://eval.ai/web/challenges/challenge-page/355/leaderboard/1011
+https://github.com/multi30k/dataset
+https://ai.googleblog.com/2020/12/transformers-for-image-recognition-at.html
+https://aclanthology.org/D19-1514/
+https://proceedings.mlr.press/v139/cho21a.html
+https://arxiv.org/abs/1909.11740
+https://www.ecva.net/papers/eccv_2020/papers_ECCV/papers/123750120.pdf
+https://proceedings.neurips.cc/paper/2020/file/49562478de4c54fafd4ec46fdb297de5-Paper.pdf
+https://arxiv.org/abs/2104.03135
+https://arxiv.org/abs/2012.15409
+https://openaccess.thecvf.com/content/CVPR2021/html/Zhang_VinVL_Revisiting_Visual_Representations_in_Vision-Language_Models_CVPR_2021_paper.html
+https://en.wikipedia.org/wiki/BLEU
+https://en.wikipedia.org/wiki/METEOR#:~:text=METEOR%20(Metric%20for%20Evaluation%20of,recall%20weighted%20higher%20than%20precision.
+https://arxiv.org/abs/1411.5726
+https://arxiv.org/abs/1607.08822
+https://blogger.googleusercontent.com/img/a/AVvXsEicy8qP7M1MYat68K_P1VY5klUjzrx9gqUnsxdjA0NJNF0e-6OAauNiAUL0vSoejCfRoIp8Yn0NKeeVhD8MhXSY75GXQ7r2iDZ2b7i91g9P46EAjktxDrxBkLqSboEHVpWElOjEazaMQQKPPNlz6dWC1vXb2Z9vitybiD655FHNhjXTABjWZFTu9gdzmg=s1076
+https://arxiv.org/abs/2103.01913
+https://opensource.google/projects/open-images-dataset
+https://arxiv.org/pdf/1504.00325.pdf
+https://nocaps.org/
+https://blogger.googleusercontent.com/img/a/AVvXsEhqLF9ELIYkefgw-mzVVZRZl0hgMsi4K7M6_kypgvHIqANPVhUasPiWHtNh6zi_Lzk4CYlKmLeUnIpCcXncFpwwMrxC3HDARQ-u1CCoCU7rNhzC-ldEdzknimZuzphHK0YehPyELqneSV_8rDRnPcb1SdtqS91z-XSFQri1MRqH-0jndupCFLWKpk8lBQ=s1114
+https://openaccess.thecvf.com/content_cvpr_2018/CameraReady/1163.pdf
+https://openaccess.thecvf.com/content_ICCV_2019/papers/Huang_Attention_on_Attention_for_Image_Captioning_ICCV_2019_paper.pdf
+https://openaccess.thecvf.com/content_CVPR_2020/papers/Cornia_Meshed-Memory_Transformer_for_Image_Captioning_CVPR_2020_paper.pdf
+https://www.ecva.net/papers/eccv_2020/papers_ECCV/papers/123750120.pdf
+https://openaccess.thecvf.com/content/CVPR2021/html/Zhang_VinVL_Revisiting_Visual_Representations_in_Vision-Language_Models_CVPR_2021_paper.html
+http://ai.googleblog.com/2021/10/baselines-for-uncertainty-and.html
+https://slideslive.com/38935801/practical-uncertainty-estimation-outofdistribution-robustness-in-deep-learning
+https://paperswithcode.com/rc2020
+https://arxiv.org/abs/1707.05589
+https://arxiv.org/abs/1807.04720
+https://arxiv.org/abs/2102.06356
+https://arxiv.org/abs/2106.04015
+https://github.com/google/uncertainty-baselines
+https://www.tensorflow.org/
+https://pytorch.org/
+https://jax.readthedocs.io/en/latest/notebooks/quickstart.html
+https://arxiv.org/abs/2002.06715
+https://arxiv.org/abs/1612.01474
+https://arxiv.org/abs/2005.07186
+https://arxiv.org/abs/1506.02142
+https://arxiv.org/abs/2006.10108
+https://github.com/google-research/google-research/tree/master/uq_benchmark_2019
+https://github.com/OATML/bdl-benchmarks
+https://github.com/google/edward2/tree/master/baselines
+https://www.cs.toronto.edu/~kriz/cifar.html
+https://image-net.org/
+https://github.com/clinc/oos-eval
+https://www.kaggle.com/c/diabetic-retinopathy-detection
+https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge
+https://arxiv.org/abs/1605.07146
+https://arxiv.org/abs/1512.03385
+https://arxiv.org/abs/1810.04805
+https://www.cs.toronto.edu/~kriz/cifar.html
+https://image-net.org/
+https://archive.ics.uci.edu/ml/datasets.php
+https://www.tensorflow.org/datasets/catalog/clinc_oos
+https://www.kaggle.com/c/diabetic-retinopathy-detection
+https://www.tensorflow.org/datasets/catalog/wikipedia_toxicity_subtypes
+https://www.tensorflow.org/api_docs/python/tf/data/Dataset
+https://github.com/google/uncertainty-baselines/blob/master/baselines/diabetic_retinopathy_detection/torch_dropout.py
+https://github.com/google/uncertainty-baselines/blob/master/baselines/jft/deterministic.py
+https://blogger.googleusercontent.com/img/a/AVvXsEjX9DG1IdOcdSKti9quPiFQCARoOVNaL2ZHfI_REyc0-Bs7eHdN6DB9qy4hQi3F2KFt5mMDAfnbDzf_1a2_CiVNz3WRCmVR5lW_e6_rsWWWkzrxxe_DrduZJOB5SEtZ9ERozgwWbyBAMYbdBfxEVnugDgEk2PgmzJKFDYMocMXCPpyNAxp0X9LOBPPfAQ=s681
+https://github.com/google-research/robustness_metrics/
+https://abseil.io/docs/python/guides/flags
+https://github.com/google/uncertainty-baselines/tree/master/baselines/diabetic_retinopathy_detection
+https://github.com/google/uncertainty-baselines/blob/df320d4987deddf2e23a8a7cb45eda87d3c5f210/baselines/cifar/deterministic.py#L132
+https://github.com/google/uncertainty-baselines#papers-using-uncertainty-baselines
+http://ai.googleblog.com/2021/10/an-ml-based-framework-for-covid-19.html
+https://www.nature.com/articles/s41746-021-00511-7
+https://www.nature.com/npjdigitalmed/
+https://arxiv.org/abs/2008.00646
+https://cloud.google.com/blog/products/ai-machine-learning/google-cloud-is-releasing-the-covid-19-public-forecasts
+https://cloud.google.com/blog/products/ai-machine-learning/google-and-harvard-improve-covid-19-forecasts
+https://cloud.google.com/blog/ja/products/ai-machine-learning/google-and-harvard-improve-covid-19-forecasts
+https://en.wikipedia.org/wiki/Prospective_cohort_study
+https://github.com/reichlab/covid19-forecast-hub
+https://cloud.google.com/blog/products/data-analytics/free-public-datasets-for-covid19
+https://ai.googleblog.com/2020/05/an-nlu-powered-tool-to-explore-covid-19.html
+https://cloud.google.com/blog/products/ai-machine-learning/how-cloud-ai-helping-during-covid-19
+https://datastudio.google.com/c/u/0/reporting/52f6e744-66c6-47aa-83db-f74201a7c4df/page/4A0sB
+https://datastudio.google.com/c/u/0/reporting/8224d512-a76e-4d38-91c1-935ba119eb8f/page/ncZpB?s=nXbF2P6La2M
+https://console.cloud.google.com/marketplace/product/bigquery-public-datasets/covid19-public-forecasts
+https://blogger.googleusercontent.com/img/a/AVvXsEie24JwUR5GgyL2oTbpsXLJj5O1jJuCnQ0SFtRnameoGxShv1S7KBrITcEemtw00hTxTRIWSLyXtjAYg94zJ0GigWTQ3ST2ctEvyZ8NghFPfItpbWQl_2lVjlh2qiB0h3ZeryjanQBIXe-T8GIvYjOCks1dTf1fuVT54tvVQS1vwPz_FNZ0DD5z1R6pWQ=s1999
+https://blogger.googleusercontent.com/img/a/AVvXsEgD2JO1NFEQxSclxMXvYG2XFcnqfSVh9pEte2nvJNCse29K2nnBnYQ1ZhQBtss8wIb6XzotvuMBXDtrxxtQLICDXpY1WkiZyfbV5vUPOhY4BQBl8HvdIirLcRxFgIpT_kBr4tFG0VwuFwSMmuFvUYxktFz-08hirjgy72Q_luG9BJmTHEa6D5mjIx6Gow=s1999
+https://en.wikipedia.org/wiki/Epidemiology
+https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology
+https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SEIR_model
+https://blogger.googleusercontent.com/img/a/AVvXsEhHwu7hwOt8g8s5GYSjwx_cJwoHQEoIg6Occ-wwcwXwOtiD0K4vVkj6OFwvFeRsgdjsNV5PbrYW0s3kCzJAUjh37ZCEBET4eaO3wv4KmGM0Hr8B9CMfi2t5HGHlivFffVqNV0CE9-1C-XMVoNUvcDuLpefOZByXy2FmI2jz8HWO1R0onUy9xQiSVcI7Tw=s1499
+https://www.google.com/covid19/mobility/
+https://en.wikipedia.org/wiki/Seq2seq
+https://en.m.wikipedia.org/wiki/Teacher_forcing
+https://en.wikipedia.org/wiki/Mean_absolute_percentage_error
+https://github.com/reichlab/covid19-forecast-hub
+https://blogger.googleusercontent.com/img/a/AVvXsEhxDAiVLMsvZZix_nK18Pbccs385RPsDbe1vHtKylc5AlRsi6ZzP5mvJQj8NkOMwIy-UYU2f6pwDvQhJ-oMC3DwwOk5G44ogZkt2BiPEPn9FRKcRnRp3e0Bav3pTQBnRXBMDZvF-l1AJCEoxIbFN5wPCYIqISEIoTfq540XrM_H6Mz0x47M8STGaJ7FFg=s982
+https://blogger.googleusercontent.com/img/a/AVvXsEge5PQYFmU8S6Sa1n971UYE8VA2EosgcT0ai5KPMlhqiX3RoAQAXBZ0sCxeLUcSthfV_1ZPhkDQb7gyCZSJ6IclBcbrsw5PX18tJBmDAQRcmcgfB1HbneYPvV4zJfUvm3YqcXtv7EGc_dAJmIgjPuipSInuGiIQNDC_A2lCdG6a1yL6JGO8jNEi1GMZyg=s757
+https://blogger.googleusercontent.com/img/a/AVvXsEi4i3sv0mhAPaTszUDykuPtUikLoDXQp8vxt0rGCGqD9-j-F5vDRk-svpj5HdzkRWBVkyeZ2AfI4NWh2lcN-DTHGf3DKYFRgZqB5E7rLZcgtt9Pmdef1Jwicb5NkuC7A4EHQNA81hm06juT0YGZm4OpU5gET1cSsdp6BsJzPoUOADprUGZkcHkCX6D71g=s766
+https://ai.google/principles/
+https://storage.googleapis.com/covid-external/COVID-19ForecastFairnessAnalysis.pdf
+https://storage.googleapis.com/covid-external/COVID-19ForecastFairnessAnalysisJapan.pdf
+https://blogger.googleusercontent.com/img/a/AVvXsEgDtZltY19B_rbt5PutDyUvONYo2dfqaNE2QB8sJf1mJazIa9jkAcLGUeSZH64f_7hkAeHpAhhj6N9cJgA1LbcFDMwkK476JK2BWLvvE5MpkuxrbkzdK0hW9zT74fgSzsN-cPIt1gLxWGwwLvMjaN9kAVt26ayQsI_5vrKyNpz-k5wZ0OZ6GaFtPr2cPw=s2886
+https://www.npr.org/sections/health-shots/2020/12/22/948085513/vaccines-are-coming-but-the-u-s-still-needs-more-testing-to-stop-the-surge
+http://ai.googleblog.com/2021/10/self-supervised-learning-advances.html
+https://ai.googleblog.com/2021/09/detecting-abnormal-chest-x-rays-using.html
+https://ai.googleblog.com/2018/10/applying-deep-learning-to-metastatic.html
+https://ai.googleblog.com/2019/09/using-deep-learning-to-inform.html
+https://ai.googleblog.com/2020/02/generating-diverse-synthetic-medical.html
+https://en.wikipedia.org/wiki/Transfer_learning
+https://en.wikipedia.org/wiki/Supervised_learning
+https://arxiv.org/pdf/1902.07208.pdf
+https://ai.googleblog.com/2020/04/advancing-self-supervised-and-semi.html
+https://arxiv.org/abs/1911.05722
+https://ai.googleblog.com/2021/06/extending-contrastive-learning-to.html
+https://arxiv.org/pdf/2101.05224.pdf
+http://iccv2021.thecvf.com/home
+https://blogger.googleusercontent.com/img/a/AVvXsEiD9uCu6LwgxMUns5MnecvW9mwIhrBwo3nQzuqUFNc2CX_Ttoghc1yDXF7dMDqA6VM9U0Lm8-Nd-zf1WN1rT7dgrpp5NCu4xU901fu1elk5z28zybk08NsXTBKvYOKajFPhBeWAONSybZ6m7Y5bv40YiL8wLAWc6IHI0Ac3HvaDvgVP692yIQGZ8hJARg=s1152
+https://arxiv.org/pdf/2002.05709.pdf
+https://blogger.googleusercontent.com/img/a/AVvXsEiYPw0MUXk9VysYYcR8U6sKei1nN8xn5g_FpCPuuRliGVclZV4xJl3rsue4l9IglZNiAyaZ5fkY6fd81iDpleq5W5zWaIm4MSZBCfyhlUc96X40hDZINBihFGL27VY2eK1iO8KyuncCW1szXlnMIcf3_xGwtVjTk-PKZmqU3CPIzMaOg3DfHS5Lb15dkQ=s1999
+https://en.wikipedia.org/wiki/Receiver_operating_characteristic#Area_under_the_curve
+https://ai.googleblog.com/2021/05/do-wide-and-deep-networks-learn-same.html
+https://arxiv.org/pdf/2006.10029.pdf
+https://blogger.googleusercontent.com/img/a/AVvXsEhRh5vGvQBNPfZ3ChrVoc6-9pth9BT94Art9yJSiARoi4TujSmahcbgfVX-Dtg0LuSZzZNC0a8T_NPbeEBEIp4i-yop3dgEv5s8OiK31fW674kcraqDdcNo6Qijuj51yf1BLRKLRsxwZMiMzqLY88x4LmvQwBNwuzbILscuFA2iW3qF7ehy33gDV2S0rQ=s1176
+https://stanfordmlgroup.github.io/competitions/chexpert/
+https://openaccess.thecvf.com/content_cvpr_2017/papers/Wang_ChestX-ray8_Hospital-Scale_Chest_CVPR_2017_paper.pdf
+https://blogger.googleusercontent.com/img/a/AVvXsEgACBDzIBmREuNm3UT8qMRCdc-i7i8_89EULc1SbDo5stxIZTLSNKKVDqoAOGq7rqdaTM8sYHHJ_ZjhpmwVfNL99MmM-bTcIZD1ah4Snv0BXdMe_No9tD76QKshuYhXvkfd3f_vFcG8ELhFXQH2NvQCvQ0jTjvDMEYUTTPj5bgJzcPoj7go-nQr2D6ODg=s1999
+https://blogger.googleusercontent.com/img/a/AVvXsEigm6FvmFujFN_BtiCY38hy9qbsBU1O9DfrPQOGg9E4NRSDN72dQRL0WyqRAU6VFgR76q3Pyq6jcOA4gPpY5JkICSL8S_-aDyt1rFZjJMhFGSu0DQ4vbEIZ7ypCp224VgztT97-0QSsoaSF_KsxImppj3KrCmHz8uclrL7LA6JdcbxHC2hydcUnaY6gow=s1350
+https://blogger.googleusercontent.com/img/a/AVvXsEj9LFqiDY4H5XEWK6VAoOG-0QBcai54kJqeXUBOmgZQWAi9aJLs-wVkxIwKB7CoLaT5vulK2N5foSnZGOyy95JlqVID6_bBiwryrOG42BAdLW7-b-0FH_r6w8W8RhdCQlHjamBFltTMPBsgLs2viydq-QVLnvYZxlOt9J-7VBtj89lYMESb0lYGt-C3Kw=s968
+http://ai.googleblog.com/2021/10/google-at-iccv-2021.html
+https://iccv2021.thecvf.com/home
+https://iccv2021.thecvf.com/node/44
+https://iccv2021.thecvf.com/node/45
+https://openaccess.thecvf.com/content/ICCV2021/papers/Zhang_MosaicOS_A_Simple_and_Effective_Use_of_Object-Centric_Images_for_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Talebi_Learning_To_Resize_Images_for_Computer_Vision_Tasks_ICCV_2021_paper.pdf.
+https://openaccess.thecvf.com/content/ICCV2021/papers/Jia_Joint_Representation_Learning_and_Novel_Category_Discovery_on_Single-_and_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Lang_Explaining_in_Style_Training_a_GAN_To_Explain_a_Classifier_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Zhang_Learning_Fast_Sample_Re-Weighting_Without_Reward_Data_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Liu_Contrastive_Multimodal_Fusion_With_TupleInfoNCE_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Epstein_Learning_Temporal_Dynamics_From_Cycles_in_Narrated_Video_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Vaksman_Patch_Craft_Video_Denoising_by_Deep_Modeling_and_Patch_Matching_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Wu_How_To_Train_Neural_Networks_for_Flare_Removal_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Abuolaim_Learning_To_Reduce_Defocus_Blur_by_Realistically_Modeling_Dual-Pixel_Data_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Liu_Hybrid_Neural_Fusion_for_Full-Frame_Video_Stabilization_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Xia_A_Dark_Flash_Normal_Camera_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Aiger_Efficient_Large_Scale_Inlier_Voting_for_Geometric_Vision_Problems_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Azizi_Big_Self-Supervised_Models_Advance_Medical_Image_Classification_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Cooke_Physics-Enhanced_Machine_Learning_for_Virtual_Fluorescence_Microscopy_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Chong_Retrieve_in_Style_Unsupervised_Facial_Feature_Transfer_and_Retrieval_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Shu_Deep_Survival_Analysis_With_Longitudinal_X-Rays_for_COVID-19_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Ke_MUSIQ_Multi-Scale_Image_Quality_Transformer_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Alldieck_imGHUM_Implicit_Generative_Models_of_3D_Human_Shape_and_Articulated_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Wei_Deep_Hybrid_Self-Prior_for_Full_3D_Mesh_Generation_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Cole_Differentiable_Surface_Rendering_via_Non-Differentiable_Sampling_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Jamal_A_Lazy_Approach_to_Long-Horizon_Gradient-Based_Meta-Learning_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Arnab_ViViT_A_Video_Vision_Transformer_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Birodkar_The_Surprising_Impact_of_Mask-Head_Architecture_on_Novel_Class_Segmentation_ICCV_2021_paper.pdf
+https://ai.googleblog.com/2021/09/revisiting-mask-head-architectures-for.html
+https://openaccess.thecvf.com/content/ICCV2021/papers/Kundu_Generalize_Then_Adapt_Source-Free_Domain_Adaptive_Semantic_Segmentation_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Arnab_Unified_Graph_Structured_Models_for_Video_Understanding_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Hendrycks_The_Many_Faces_of_Robustness_A_Critical_Analysis_of_Out-of-Distribution_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Mullapudi_Learning_Rare_Category_Classifiers_on_a_Tight_Labeling_Budget_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Sun_Composable_Augmentation_Encoding_for_Video_Representation_Learning_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Ghiasi_Multi-Task_Self-Training_for_Learning_General_Representations_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Dwibedi_With_a_Little_Help_From_My_Friends_Nearest-Neighbor_Contrastive_Learning_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Bhojanapalli_Understanding_Robustness_of_Transformers_for_Image_Classification_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Vasconcelos_Impact_of_Aliasing_on_Generalization_in_Deep_Convolutional_Networks_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Scott_von_Mises-Fisher_Loss_An_Exploration_of_Embedding_Geometries_for_Supervised_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Zhao_Contrastive_Learning_for_Label_Efficient_Semantic_Segmentation_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Zhang_Interacting_Two-Hand_3D_Pose_and_Shape_Reconstruction_From_Single_Color_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Changpinyo_Telling_the_What_While_Pointing_to_the_Where_Multimodal_Queries_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Di_SO-Pose_Exploiting_Self-Occlusion_for_Direct_6D_Pose_Estimation_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Kuo_Patch2CAD_Patchwise_Embedding_Learning_for_In-the-Wild_Shape_Retrieval_From_a_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Boss_NeRD_Neural_Reflectance_Decomposition_From_Image_Collections_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Zanfir_THUNDR_Transformer-Based_3D_Human_Reconstruction_With_Markers_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Yao_Discovering_3D_Parts_From_Image_Collections_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Chen_Multiresolution_Deep_Implicit_Functions_for_3D_Shape_Representation_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Li_AI_Choreographer_Music_Conditioned_3D_Dance_Generation_With_AIST_ICCV_2021_paper.pdf
+https://ai.googleblog.com/2021/09/music-conditioned-3d-dance-generation.html
+https://openaccess.thecvf.com/content/ICCV2021/papers/Yang_Learning_Object-Compositional_Neural_Radiance_Field_for_Editable_Scene_Rendering_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Buhler_VariTex_Variational_Neural_Face_Textures_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Koh_Pathdreamer_A_World_Model_for_Indoor_Navigation_ICCV_2021_paper.pdf
+https://ai.googleblog.com/2021/09/pathdreamer-world-model-for-indoor.html
+https://openaccess.thecvf.com/content/ICCV2021/papers/Piergiovanni_4D-Net_for_Learned_Multi-Modal_Alignment_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Pashevich_Episodic_Transformer_for_Vision-and-Language_Navigation_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Dhamo_Graph-to-3D_End-to-End_Generation_and_Manipulation_of_3D_Scenes_Using_Scene_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Garg_Unconditional_Scene_Graph_Generation_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Gonzalez_Panoptic_Narrative_Grounding_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Afifi_Cross-Camera_Convolutional_Color_Constancy_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Xin_Defocus_Map_Estimation_and_Deblurring_From_a_Single_Dual-Pixel_Image_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Li_COMISR_Compression-Informed_Video_Super-Resolution_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Barron_Mip-NeRF_A_Multiscale_Representation_for_Anti-Aliasing_Neural_Radiance_Fields_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Park_Nerfies_Deformable_Neural_Radiance_Fields_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Hedman_Baking_Neural_Radiance_Fields_for_Real-Time_View_Synthesis_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Song_Stacked_Homography_Transformations_for_Multi-View_Pedestrian_Detection_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Jiang_COTR_Correspondence_Transformer_for_Matching_Across_Images_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Ettinger_Large_Scale_Interactive_Motion_Forecasting_for_Autonomous_Driving_The_Waymo_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Poms_Low-Shot_Validation_Active_Importance_Sampling_for_Estimating_Classifier_Performance_on_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Deng_Vector_Neurons_A_General_Framework_for_SO3-Equivariant_Networks_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Jampani_SLIDE_Single_Image_3D_Photography_With_Soft_Layering_and_Depth-Aware_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Zhang_DeepPanoContext_Panoramic_3D_Scene_Understanding_With_Holistic_Scene_Context_Graph_ICCV_2021_paper.pdf
+https://openaccess.thecvf.com/content/ICCV2021/papers/Liu_Infinite_Nature_Perpetual_View_Generation_of_Natural_Scenes_From_a_ICCV_2021_paper.pdf
+https://vipriors.github.io/
+https://ilr-workshop.github.io/ICCVW2021/
+https://unsup3d.github.io/
+https://www.ki-deltalearning.de/event/ercvad2021
+https://iccv21-adv-workshop.github.io/
+https://neural-architecture-ppf.github.io/
+http://vcmi.inesctec.pt/cdpath_iccv/
+https://ildav-workshop.github.io/
+https://sites.google.com/corp/view/mlad-iccv2021/home?authuser=0
+https://deeperaction.github.io/
+http://montrealrobotics.ca/diff3d/
+https://sites.google.com/corp/view/deepmtlworkshop/home
+https://xr.cornell.edu/workshop/2021
+http://www.gigavision.cn/ICCV2021.html
+https://human-interaction4robotic-navigation.github.io/index.html
+https://data.vision.ee.ethz.ch/cvl/aim21/
+https://sites.google.com/corp/view/melex-2021/home
+https://geometry.stanford.edu/struco3d/
+https://iccv21-seai.github.io/index.html#
+https://www.vspwdataset.com/Workshop%202021
+https://sites.google.com/corp/view/srvu-iccv21-workshop
+https://sites.google.com/corp/view/iccv21clvl
+https://motchallenge.net/workshops/bmtt2021/
+https://cveu.github.io/
+https://behavior.stanford.edu/
+https://sites.google.com/corp/view/cvamd2021/home?authuser=0
+https://www.retrocausal.ai/cv4ff
+https://explainablevision.github.io/
+https://bryanyzhu.github.io/mm-iccv2021/
+https://holistic-video-understanding.github.io/tutorials/iccv2021.html
+https://sites.google.com/corp/view/effvideo-2021/
+http://ai.googleblog.com/
+http://ai.googleblog.com/search?updated-max=2021-10-11T12:30:00-07:00&max-results=10
+http://ai.googleblog.com/search/label/accessibility
+http://ai.googleblog.com/search/label/ACL
+http://ai.googleblog.com/search/label/ACM
+http://ai.googleblog.com/search/label/Acoustic%20Modeling
+http://ai.googleblog.com/search/label/Adaptive%20Data%20Analysis
+http://ai.googleblog.com/search/label/ads
+http://ai.googleblog.com/search/label/adsense
+http://ai.googleblog.com/search/label/adwords
+http://ai.googleblog.com/search/label/Africa
+http://ai.googleblog.com/search/label/AI
+http://ai.googleblog.com/search/label/AI%20for%20Social%20Good
+http://ai.googleblog.com/search/label/Algorithms
+http://ai.googleblog.com/search/label/Android
+http://ai.googleblog.com/search/label/Android%20Wear
+http://ai.googleblog.com/search/label/API
+http://ai.googleblog.com/search/label/App%20Engine
+http://ai.googleblog.com/search/label/App%20Inventor
+http://ai.googleblog.com/search/label/April%20Fools
+http://ai.googleblog.com/search/label/Art
+http://ai.googleblog.com/search/label/Audio
+http://ai.googleblog.com/search/label/Augmented%20Reality
+http://ai.googleblog.com/search/label/Australia
+http://ai.googleblog.com/search/label/Automatic%20Speech%20Recognition
+http://ai.googleblog.com/search/label/AutoML
+http://ai.googleblog.com/search/label/Awards
+http://ai.googleblog.com/search/label/BigQuery
+http://ai.googleblog.com/search/label/Cantonese
+http://ai.googleblog.com/search/label/Chemistry
+http://ai.googleblog.com/search/label/China
+http://ai.googleblog.com/search/label/Chrome
+http://ai.googleblog.com/search/label/Cloud%20Computing
+http://ai.googleblog.com/search/label/Collaboration
+http://ai.googleblog.com/search/label/Compression
+http://ai.googleblog.com/search/label/Computational%20Imaging
+http://ai.googleblog.com/search/label/Computational%20Photography
+http://ai.googleblog.com/search/label/Computer%20Science
+http://ai.googleblog.com/search/label/Computer%20Vision
+http://ai.googleblog.com/search/label/conference
+http://ai.googleblog.com/search/label/conferences
+http://ai.googleblog.com/search/label/Conservation
+http://ai.googleblog.com/search/label/correlate
+http://ai.googleblog.com/search/label/Course%20Builder
+http://ai.googleblog.com/search/label/crowd-sourcing
+http://ai.googleblog.com/search/label/CVPR
+http://ai.googleblog.com/search/label/Data%20Center
+http://ai.googleblog.com/search/label/Data%20Discovery
+http://ai.googleblog.com/search/label/data%20science
+http://ai.googleblog.com/search/label/datasets
+http://ai.googleblog.com/search/label/Deep%20Learning
+http://ai.googleblog.com/search/label/DeepDream
+http://ai.googleblog.com/search/label/DeepMind
+http://ai.googleblog.com/search/label/distributed%20systems
+http://ai.googleblog.com/search/label/Diversity
+http://ai.googleblog.com/search/label/Earth%20Engine
+http://ai.googleblog.com/search/label/economics
+http://ai.googleblog.com/search/label/Education
+http://ai.googleblog.com/search/label/Electronic%20Commerce%20and%20Algorithms
+http://ai.googleblog.com/search/label/electronics
+http://ai.googleblog.com/search/label/EMEA
+http://ai.googleblog.com/search/label/EMNLP
+http://ai.googleblog.com/search/label/Encryption
+http://ai.googleblog.com/search/label/entities
+http://ai.googleblog.com/search/label/Entity%20Salience
+http://ai.googleblog.com/search/label/Environment
+http://ai.googleblog.com/search/label/Europe
+http://ai.googleblog.com/search/label/Exacycle
+http://ai.googleblog.com/search/label/Expander
+http://ai.googleblog.com/search/label/Faculty%20Institute
+http://ai.googleblog.com/search/label/Faculty%20Summit
+http://ai.googleblog.com/search/label/Flu%20Trends
+http://ai.googleblog.com/search/label/Fusion%20Tables
+http://ai.googleblog.com/search/label/gamification
+http://ai.googleblog.com/search/label/Gboard
+http://ai.googleblog.com/search/label/Gmail
+http://ai.googleblog.com/search/label/Google%20Accelerated%20Science
+http://ai.googleblog.com/search/label/Google%20Books
+http://ai.googleblog.com/search/label/Google%20Brain
+http://ai.googleblog.com/search/label/Google%20Cloud%20Platform
+http://ai.googleblog.com/search/label/Google%20Docs
+http://ai.googleblog.com/search/label/Google%20Drive
+http://ai.googleblog.com/search/label/Google%20Genomics
+http://ai.googleblog.com/search/label/Google%20Maps
+http://ai.googleblog.com/search/label/Google%20Photos
+http://ai.googleblog.com/search/label/Google%20Play%20Apps
+http://ai.googleblog.com/search/label/Google%20Science%20Fair
+http://ai.googleblog.com/search/label/Google%20Sheets
+http://ai.googleblog.com/search/label/Google%20Translate
+http://ai.googleblog.com/search/label/Google%20Trips
+http://ai.googleblog.com/search/label/Google%20Voice%20Search
+http://ai.googleblog.com/search/label/Google%2B
+http://ai.googleblog.com/search/label/Government
+http://ai.googleblog.com/search/label/grants
+http://ai.googleblog.com/search/label/Graph
+http://ai.googleblog.com/search/label/Graph%20Mining
+http://ai.googleblog.com/search/label/Hardware
+http://ai.googleblog.com/search/label/HCI
+http://ai.googleblog.com/search/label/Health
+http://ai.googleblog.com/search/label/High%20Dynamic%20Range%20Imaging
+http://ai.googleblog.com/search/label/ICCV
+http://ai.googleblog.com/search/label/ICLR
+http://ai.googleblog.com/search/label/ICML
+http://ai.googleblog.com/search/label/ICSE
+http://ai.googleblog.com/search/label/Image%20Annotation
+http://ai.googleblog.com/search/label/Image%20Classification
+http://ai.googleblog.com/search/label/Image%20Processing
+http://ai.googleblog.com/search/label/Inbox
+http://ai.googleblog.com/search/label/India
+http://ai.googleblog.com/search/label/Information%20Retrieval
+http://ai.googleblog.com/search/label/internationalization
+http://ai.googleblog.com/search/label/Internet%20of%20Things
+http://ai.googleblog.com/search/label/Interspeech
+http://ai.googleblog.com/search/label/IPython
+http://ai.googleblog.com/search/label/Journalism
+http://ai.googleblog.com/search/label/jsm
+http://ai.googleblog.com/search/label/jsm2011
+http://ai.googleblog.com/search/label/K-12
+http://ai.googleblog.com/search/label/Kaggle
+http://ai.googleblog.com/search/label/KDD
+http://ai.googleblog.com/search/label/Keyboard%20Input
+http://ai.googleblog.com/search/label/Klingon
+http://ai.googleblog.com/search/label/Korean
+http://ai.googleblog.com/search/label/Labs
+http://ai.googleblog.com/search/label/Linear%20Optimization
+http://ai.googleblog.com/search/label/localization
+http://ai.googleblog.com/search/label/Low-Light%20Photography
+http://ai.googleblog.com/search/label/Machine%20Hearing
+http://ai.googleblog.com/search/label/Machine%20Intelligence
+http://ai.googleblog.com/search/label/Machine%20Learning
+http://ai.googleblog.com/search/label/Machine%20Perception
+http://ai.googleblog.com/search/label/Machine%20Translation
+http://ai.googleblog.com/search/label/Magenta
+http://ai.googleblog.com/search/label/MapReduce
+http://ai.googleblog.com/search/label/market%20algorithms
+http://ai.googleblog.com/search/label/Market%20Research
+http://ai.googleblog.com/search/label/materials%20science
+http://ai.googleblog.com/search/label/Mixed%20Reality
+http://ai.googleblog.com/search/label/ML
+http://ai.googleblog.com/search/label/ML%20Fairness
+http://ai.googleblog.com/search/label/MOOC
+http://ai.googleblog.com/search/label/Moore%27s%20Law
+http://ai.googleblog.com/search/label/Multimodal%20Learning
+http://ai.googleblog.com/search/label/NAACL
+http://ai.googleblog.com/search/label/Natural%20Language%20Processing
+http://ai.googleblog.com/search/label/Natural%20Language%20Understanding
+http://ai.googleblog.com/search/label/Network%20Management
+http://ai.googleblog.com/search/label/Networks
+http://ai.googleblog.com/search/label/Neural%20Networks
+http://ai.googleblog.com/search/label/NeurIPS
+http://ai.googleblog.com/search/label/Nexus
+http://ai.googleblog.com/search/label/Ngram
+http://ai.googleblog.com/search/label/NIPS
+http://ai.googleblog.com/search/label/NLP
+http://ai.googleblog.com/search/label/On-device%20Learning
+http://ai.googleblog.com/search/label/open%20source
+http://ai.googleblog.com/search/label/operating%20systems
+http://ai.googleblog.com/search/label/Optical%20Character%20Recognition
+http://ai.googleblog.com/search/label/optimization
+http://ai.googleblog.com/search/label/osdi
+http://ai.googleblog.com/search/label/osdi10
+http://ai.googleblog.com/search/label/patents
+http://ai.googleblog.com/search/label/Peer%20Review
+http://ai.googleblog.com/search/label/ph.d.%20fellowship
+http://ai.googleblog.com/search/label/PhD%20Fellowship
+http://ai.googleblog.com/search/label/PhotoScan
+http://ai.googleblog.com/search/label/Physics
+http://ai.googleblog.com/search/label/PiLab
+http://ai.googleblog.com/search/label/Pixel
+http://ai.googleblog.com/search/label/Policy
+http://ai.googleblog.com/search/label/Professional%20Development
+http://ai.googleblog.com/search/label/Proposals
+http://ai.googleblog.com/search/label/Public%20Data%20Explorer
+http://ai.googleblog.com/search/label/publication
+http://ai.googleblog.com/search/label/Publications
+http://ai.googleblog.com/search/label/Quantum%20AI
+http://ai.googleblog.com/search/label/Quantum%20Computing
+http://ai.googleblog.com/search/label/Recommender%20Systems
+http://ai.googleblog.com/search/label/Reinforcement%20Learning
+http://ai.googleblog.com/search/label/renewable%20energy
+http://ai.googleblog.com/search/label/Research
+http://ai.googleblog.com/search/label/Research%20Awards
+http://ai.googleblog.com/search/label/resource%20optimization
+http://ai.googleblog.com/search/label/Responsible%20AI
+http://ai.googleblog.com/search/label/Robotics
+http://ai.googleblog.com/search/label/schema.org
+http://ai.googleblog.com/search/label/Search
+http://ai.googleblog.com/search/label/search%20ads
+http://ai.googleblog.com/search/label/Security%20and%20Privacy
+http://ai.googleblog.com/search/label/Self-Supervised%20Learning
+http://ai.googleblog.com/search/label/Semantic%20Models
+http://ai.googleblog.com/search/label/Semi-supervised%20Learning
+http://ai.googleblog.com/search/label/SIGCOMM
+http://ai.googleblog.com/search/label/SIGMOD
+http://ai.googleblog.com/search/label/Site%20Reliability%20Engineering
+http://ai.googleblog.com/search/label/Social%20Networks
+http://ai.googleblog.com/search/label/Software
+http://ai.googleblog.com/search/label/Sound%20Search
+http://ai.googleblog.com/search/label/Speech
+http://ai.googleblog.com/search/label/Speech%20Recognition
+http://ai.googleblog.com/search/label/statistics
+http://ai.googleblog.com/search/label/Structured%20Data
+http://ai.googleblog.com/search/label/Style%20Transfer
+http://ai.googleblog.com/search/label/Supervised%20Learning
+http://ai.googleblog.com/search/label/Systems
+http://ai.googleblog.com/search/label/TensorBoard
+http://ai.googleblog.com/search/label/TensorFlow
+http://ai.googleblog.com/search/label/TPU
+http://ai.googleblog.com/search/label/Translate
+http://ai.googleblog.com/search/label/trends
+http://ai.googleblog.com/search/label/TTS
+http://ai.googleblog.com/search/label/TV
+http://ai.googleblog.com/search/label/UI
+http://ai.googleblog.com/search/label/University%20Relations
+http://ai.googleblog.com/search/label/UNIX
+http://ai.googleblog.com/search/label/Unsupervised%20Learning
+http://ai.googleblog.com/search/label/User%20Experience
+http://ai.googleblog.com/search/label/video
+http://ai.googleblog.com/search/label/Video%20Analysis
+http://ai.googleblog.com/search/label/Virtual%20Reality
+http://ai.googleblog.com/search/label/Vision%20Research
+http://ai.googleblog.com/search/label/Visiting%20Faculty
+http://ai.googleblog.com/search/label/Visualization
+http://ai.googleblog.com/search/label/VLDB
+http://ai.googleblog.com/search/label/Voice%20Search
+http://ai.googleblog.com/search/label/Wiki
+http://ai.googleblog.com/search/label/wikipedia
+http://ai.googleblog.com/search/label/WWW
+http://ai.googleblog.com/search/label/Year%20in%20Review
+http://ai.googleblog.com/search/label/YouTube
+javascript:void(0)
+http://ai.googleblog.com/2021/
+http://ai.googleblog.com/2021/10/
+http://ai.googleblog.com/2021/09/
+http://ai.googleblog.com/2021/08/
+http://ai.googleblog.com/2021/07/
+http://ai.googleblog.com/2021/06/
+http://ai.googleblog.com/2021/05/
+http://ai.googleblog.com/2021/04/
+http://ai.googleblog.com/2021/03/
+http://ai.googleblog.com/2021/02/
+http://ai.googleblog.com/2021/01/
+javascript:void(0)
+http://ai.googleblog.com/2020/
+http://ai.googleblog.com/2020/12/
+http://ai.googleblog.com/2020/11/
+http://ai.googleblog.com/2020/10/
+http://ai.googleblog.com/2020/09/
+http://ai.googleblog.com/2020/08/
+http://ai.googleblog.com/2020/07/
+http://ai.googleblog.com/2020/06/
+http://ai.googleblog.com/2020/05/
+http://ai.googleblog.com/2020/04/
+http://ai.googleblog.com/2020/03/
+http://ai.googleblog.com/2020/02/
+http://ai.googleblog.com/2020/01/
+javascript:void(0)
+http://ai.googleblog.com/2019/
+http://ai.googleblog.com/2019/12/
+http://ai.googleblog.com/2019/11/
+http://ai.googleblog.com/2019/10/
+http://ai.googleblog.com/2019/09/
+http://ai.googleblog.com/2019/08/
+http://ai.googleblog.com/2019/07/
+http://ai.googleblog.com/2019/06/
+http://ai.googleblog.com/2019/05/
+http://ai.googleblog.com/2019/04/
+http://ai.googleblog.com/2019/03/
+http://ai.googleblog.com/2019/02/
+http://ai.googleblog.com/2019/01/
+javascript:void(0)
+http://ai.googleblog.com/2018/
+http://ai.googleblog.com/2018/12/
+http://ai.googleblog.com/2018/11/
+http://ai.googleblog.com/2018/10/
+http://ai.googleblog.com/2018/09/
+http://ai.googleblog.com/2018/08/
+http://ai.googleblog.com/2018/07/
+http://ai.googleblog.com/2018/06/
+http://ai.googleblog.com/2018/05/
+http://ai.googleblog.com/2018/04/
+http://ai.googleblog.com/2018/03/
+http://ai.googleblog.com/2018/02/
+http://ai.googleblog.com/2018/01/
+javascript:void(0)
+http://ai.googleblog.com/2017/
+http://ai.googleblog.com/2017/12/
+http://ai.googleblog.com/2017/11/
+http://ai.googleblog.com/2017/10/
+http://ai.googleblog.com/2017/09/
+http://ai.googleblog.com/2017/08/
+http://ai.googleblog.com/2017/07/
+http://ai.googleblog.com/2017/06/
+http://ai.googleblog.com/2017/05/
+http://ai.googleblog.com/2017/04/
+http://ai.googleblog.com/2017/03/
+http://ai.googleblog.com/2017/02/
+http://ai.googleblog.com/2017/01/
+javascript:void(0)
+http://ai.googleblog.com/2016/
+http://ai.googleblog.com/2016/12/
+http://ai.googleblog.com/2016/11/
+http://ai.googleblog.com/2016/10/
+http://ai.googleblog.com/2016/09/
+http://ai.googleblog.com/2016/08/
+http://ai.googleblog.com/2016/07/
+http://ai.googleblog.com/2016/06/
+http://ai.googleblog.com/2016/05/
+http://ai.googleblog.com/2016/04/
+http://ai.googleblog.com/2016/03/
+http://ai.googleblog.com/2016/02/
+http://ai.googleblog.com/2016/01/
+javascript:void(0)
+http://ai.googleblog.com/2015/
+http://ai.googleblog.com/2015/12/
+http://ai.googleblog.com/2015/11/
+http://ai.googleblog.com/2015/10/
+http://ai.googleblog.com/2015/09/
+http://ai.googleblog.com/2015/08/
+http://ai.googleblog.com/2015/07/
+http://ai.googleblog.com/2015/06/
+http://ai.googleblog.com/2015/05/
+http://ai.googleblog.com/2015/04/
+http://ai.googleblog.com/2015/03/
+http://ai.googleblog.com/2015/02/
+http://ai.googleblog.com/2015/01/
+javascript:void(0)
+http://ai.googleblog.com/2014/
+http://ai.googleblog.com/2014/12/
+http://ai.googleblog.com/2014/11/
+http://ai.googleblog.com/2014/10/
+http://ai.googleblog.com/2014/09/
+http://ai.googleblog.com/2014/08/
+http://ai.googleblog.com/2014/07/
+http://ai.googleblog.com/2014/06/
+http://ai.googleblog.com/2014/05/
+http://ai.googleblog.com/2014/04/
+http://ai.googleblog.com/2014/03/
+http://ai.googleblog.com/2014/02/
+http://ai.googleblog.com/2014/01/
+javascript:void(0)
+http://ai.googleblog.com/2013/
+http://ai.googleblog.com/2013/12/
+http://ai.googleblog.com/2013/11/
+http://ai.googleblog.com/2013/10/
+http://ai.googleblog.com/2013/09/
+http://ai.googleblog.com/2013/08/
+http://ai.googleblog.com/2013/07/
+http://ai.googleblog.com/2013/06/
+http://ai.googleblog.com/2013/05/
+http://ai.googleblog.com/2013/04/
+http://ai.googleblog.com/2013/03/
+http://ai.googleblog.com/2013/02/
+http://ai.googleblog.com/2013/01/
+javascript:void(0)
+http://ai.googleblog.com/2012/
+http://ai.googleblog.com/2012/12/
+http://ai.googleblog.com/2012/10/
+http://ai.googleblog.com/2012/09/
+http://ai.googleblog.com/2012/08/
+http://ai.googleblog.com/2012/07/
+http://ai.googleblog.com/2012/06/
+http://ai.googleblog.com/2012/05/
+http://ai.googleblog.com/2012/04/
+http://ai.googleblog.com/2012/03/
+http://ai.googleblog.com/2012/02/
+http://ai.googleblog.com/2012/01/
+javascript:void(0)
+http://ai.googleblog.com/2011/
+http://ai.googleblog.com/2011/12/
+http://ai.googleblog.com/2011/11/
+http://ai.googleblog.com/2011/09/
+http://ai.googleblog.com/2011/08/
+http://ai.googleblog.com/2011/07/
+http://ai.googleblog.com/2011/06/
+http://ai.googleblog.com/2011/05/
+http://ai.googleblog.com/2011/04/
+http://ai.googleblog.com/2011/03/
+http://ai.googleblog.com/2011/02/
+http://ai.googleblog.com/2011/01/
+javascript:void(0)
+http://ai.googleblog.com/2010/
+http://ai.googleblog.com/2010/12/
+http://ai.googleblog.com/2010/11/
+http://ai.googleblog.com/2010/10/
+http://ai.googleblog.com/2010/09/
+http://ai.googleblog.com/2010/08/
+http://ai.googleblog.com/2010/07/
+http://ai.googleblog.com/2010/06/
+http://ai.googleblog.com/2010/05/
+http://ai.googleblog.com/2010/04/
+http://ai.googleblog.com/2010/03/
+http://ai.googleblog.com/2010/02/
+http://ai.googleblog.com/2010/01/
+javascript:void(0)
+http://ai.googleblog.com/2009/
+http://ai.googleblog.com/2009/12/
+http://ai.googleblog.com/2009/11/
+http://ai.googleblog.com/2009/08/
+http://ai.googleblog.com/2009/07/
+http://ai.googleblog.com/2009/06/
+http://ai.googleblog.com/2009/05/
+http://ai.googleblog.com/2009/04/
+http://ai.googleblog.com/2009/03/
+http://ai.googleblog.com/2009/02/
+http://ai.googleblog.com/2009/01/
+javascript:void(0)
+http://ai.googleblog.com/2008/
+http://ai.googleblog.com/2008/12/
+http://ai.googleblog.com/2008/11/
+http://ai.googleblog.com/2008/10/
+http://ai.googleblog.com/2008/09/
+http://ai.googleblog.com/2008/07/
+http://ai.googleblog.com/2008/05/
+http://ai.googleblog.com/2008/04/
+http://ai.googleblog.com/2008/03/
+http://ai.googleblog.com/2008/02/
+javascript:void(0)
+http://ai.googleblog.com/2007/
+http://ai.googleblog.com/2007/10/
+http://ai.googleblog.com/2007/09/
+http://ai.googleblog.com/2007/08/
+http://ai.googleblog.com/2007/07/
+http://ai.googleblog.com/2007/06/
+http://ai.googleblog.com/2007/02/
+javascript:void(0)
+http://ai.googleblog.com/2006/
+http://ai.googleblog.com/2006/12/
+http://ai.googleblog.com/2006/11/
+http://ai.googleblog.com/2006/09/
+http://ai.googleblog.com/2006/08/
+http://ai.googleblog.com/2006/07/
+http://ai.googleblog.com/2006/06/
+http://ai.googleblog.com/2006/04/
+http://ai.googleblog.com/2006/03/
+http://ai.googleblog.com/2006/02/
+http://googleaiblog.blogspot.com/atom.xml
+http://support.google.com/bin/static.py?hl=en&page=portal_groups.cs
+//www.google.com/
+//www.google.com/
+//www.google.com/policies/privacy/
+//www.google.com/policies/terms/

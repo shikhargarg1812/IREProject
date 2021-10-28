@@ -3,7 +3,7 @@ This file extracts the file from the title
 """
 import urllib.request as libreq
 import re
-title="Impact of Electron-Electron Cusp on Configuration Interaction Energies"
+title="Discriminator-Actor-Critic Learning"
 title=re.split(' |-',title)
 query=""
 for i in range(len(title)):

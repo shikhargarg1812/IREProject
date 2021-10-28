@@ -1,0 +1,440 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <link href="http://arxiv.org/api/query?search_query%3Dti%3A%28Discriminator%20Actor%20AND%20Critic%20AND%20Learning%29%26id_list%3D%26start%3D0%26max_results%3D10" rel="self" type="application/atom+xml"/>
+  <title type="html">ArXiv Query: search_query=ti:(Discriminator Actor AND Critic AND Learning)&amp;id_list=&amp;start=0&amp;max_results=10</title>
+  <id>http://arxiv.org/api/zI3HOlYzxUGC3kZyk3jJrzXyU1Y</id>
+  <updated>2021-10-24T00:00:00-04:00</updated>
+  <opensearch:totalResults xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">87</opensearch:totalResults>
+  <opensearch:startIndex xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">0</opensearch:startIndex>
+  <opensearch:itemsPerPage xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">10</opensearch:itemsPerPage>
+  <entry>
+    <id>http://arxiv.org/abs/1711.04755v1</id>
+    <updated>2017-11-13T18:49:06Z</updated>
+    <published>2017-11-13T18:49:06Z</published>
+    <title>ACtuAL: Actor-Critic Under Adversarial Learning</title>
+    <summary>  Generative Adversarial Networks (GANs) are a powerful framework for deep
+generative modeling. Posed as a two-player minimax problem, GANs are typically
+trained end-to-end on real-valued data and can be used to train a generator of
+high-dimensional and realistic images. However, a major limitation of GANs is
+that training relies on passing gradients from the discriminator through the
+generator via back-propagation. This makes it fundamentally difficult to train
+GANs with discrete data, as generation in this case typically involves a
+non-differentiable function. These difficulties extend to the reinforcement
+learning setting when the action space is composed of discrete decisions. We
+address these issues by reframing the GAN framework so that the generator is no
+longer trained using gradients through the discriminator, but is instead
+trained using a learned critic in the actor-critic framework with a Temporal
+Difference (TD) objective. This is a natural fit for sequence modeling and we
+use it to achieve improvements on language modeling tasks over the standard
+Teacher-Forcing methods.
+</summary>
+    <author>
+      <name>Anirudh Goyal</name>
+    </author>
+    <author>
+      <name>Nan Rosemary Ke</name>
+    </author>
+    <author>
+      <name>Alex Lamb</name>
+    </author>
+    <author>
+      <name>R Devon Hjelm</name>
+    </author>
+    <author>
+      <name>Chris Pal</name>
+    </author>
+    <author>
+      <name>Joelle Pineau</name>
+    </author>
+    <author>
+      <name>Yoshua Bengio</name>
+    </author>
+    <link href="http://arxiv.org/abs/1711.04755v1" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/1711.04755v1" rel="related" type="application/pdf"/>
+    <arxiv:primary_category xmlns:arxiv="http://arxiv.org/schemas/atom" term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/1712.08987v1</id>
+    <updated>2017-12-25T02:03:12Z</updated>
+    <published>2017-12-25T02:03:12Z</published>
+    <title>Learning to Run with Actor-Critic Ensemble</title>
+    <summary>  We introduce an Actor-Critic Ensemble(ACE) method for improving the
+performance of Deep Deterministic Policy Gradient(DDPG) algorithm. At inference
+time, our method uses a critic ensemble to select the best action from
+proposals of multiple actors running in parallel. By having a larger candidate
+set, our method can avoid actions that have fatal consequences, while staying
+deterministic. Using ACE, we have won the 2nd place in NIPS'17 Learning to Run
+competition, under the name of "Megvii-hzwer".
+</summary>
+    <author>
+      <name>Zhewei Huang</name>
+    </author>
+    <author>
+      <name>Shuchang Zhou</name>
+    </author>
+    <author>
+      <name>BoEr Zhuang</name>
+    </author>
+    <author>
+      <name>Xinyu Zhou</name>
+    </author>
+    <arxiv:comment xmlns:arxiv="http://arxiv.org/schemas/atom">3 pages, 4 figures</arxiv:comment>
+    <link href="http://arxiv.org/abs/1712.08987v1" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/1712.08987v1" rel="related" type="application/pdf"/>
+    <arxiv:primary_category xmlns:arxiv="http://arxiv.org/schemas/atom" term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2005.03420v3</id>
+    <updated>2020-08-17T08:45:36Z</updated>
+    <published>2020-05-07T12:44:26Z</published>
+    <title>Curious Hierarchical Actor-Critic Reinforcement Learning</title>
+    <summary>  Hierarchical abstraction and curiosity-driven exploration are two common
+paradigms in current reinforcement learning approaches to break down difficult
+problems into a sequence of simpler ones and to overcome reward sparsity.
+However, there is a lack of approaches that combine these paradigms, and it is
+currently unknown whether curiosity also helps to perform the hierarchical
+abstraction. As a novelty and scientific contribution, we tackle this issue and
+develop a method that combines hierarchical reinforcement learning with
+curiosity. Herein, we extend a contemporary hierarchical actor-critic approach
+with a forward model to develop a hierarchical notion of curiosity. We
+demonstrate in several continuous-space environments that curiosity can more
+than double the learning performance and success rates for most of the
+investigated benchmarking problems. We also provide our source code and a
+supplementary video.
+</summary>
+    <author>
+      <name>Frank Röder</name>
+    </author>
+    <author>
+      <name>Manfred Eppe</name>
+    </author>
+    <author>
+      <name>Phuong D. H. Nguyen</name>
+    </author>
+    <author>
+      <name>Stefan Wermter</name>
+    </author>
+    <arxiv:comment xmlns:arxiv="http://arxiv.org/schemas/atom">12 pages, 4 figures</arxiv:comment>
+    <link href="http://arxiv.org/abs/2005.03420v3" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/2005.03420v3" rel="related" type="application/pdf"/>
+    <arxiv:primary_category xmlns:arxiv="http://arxiv.org/schemas/atom" term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.RO" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2006.06923v1</id>
+    <updated>2020-06-12T03:09:25Z</updated>
+    <published>2020-06-12T03:09:25Z</published>
+    <title>Potential Field Guided Actor-Critic Reinforcement Learning</title>
+    <summary>  In this paper, we consider the problem of actor-critic reinforcement
+learning. Firstly, we extend the actor-critic architecture to actor-critic-N
+architecture by introducing more critics beyond rewards. Secondly, we combine
+the reward-based critic with a potential-field-based critic to formulate the
+proposed potential field guided actor-critic reinforcement learning approach
+(actor-critic-2). This can be seen as a combination of the model-based
+gradients and the model-free gradients in policy improvement. State with large
+potential field often contains a strong prior information, such as pointing to
+the target at a long distance or avoiding collision by the side of an obstacle.
+In this situation, we should trust potential-field-based critic more as policy
+evaluation to accelerate policy improvement, where action policy tends to be
+guided. For example, in practical application, learning to avoid obstacles
+should be guided rather than learned by trial and error. State with small
+potential filed is often lack of information, for example, at the local minimum
+point or around the moving target. At this time, we should trust reward-based
+critic as policy evaluation more to evaluate the long-term return. In this
+case, action policy tends to explore. In addition, potential field evaluation
+can be combined with planning to estimate a better state value function. In
+this way, reward design can focus more on the final stage of reward, rather
+than reward shaping or phased reward. Furthermore, potential field evaluation
+can make up for the lack of communication in multi-agent cooperation problem,
+i.e., multi-agent each has a reward-based critic and a relative unified
+potential-field-based critic with prior information. Thirdly, simplified
+experiments on predator-prey game demonstrate the effectiveness of the proposed
+approach.
+</summary>
+    <author>
+      <name>Weiya Ren</name>
+    </author>
+    <arxiv:comment xmlns:arxiv="http://arxiv.org/schemas/atom">7 pages</arxiv:comment>
+    <link href="http://arxiv.org/abs/2006.06923v1" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/2006.06923v1" rel="related" type="application/pdf"/>
+    <arxiv:primary_category xmlns:arxiv="http://arxiv.org/schemas/atom" term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2003.05334v2</id>
+    <updated>2020-11-02T04:53:38Z</updated>
+    <published>2020-03-11T14:39:49Z</published>
+    <title>Online Meta-Critic Learning for Off-Policy Actor-Critic Methods</title>
+    <summary>  Off-Policy Actor-Critic (Off-PAC) methods have proven successful in a variety
+of continuous control tasks. Normally, the critic's action-value function is
+updated using temporal-difference, and the critic in turn provides a loss for
+the actor that trains it to take actions with higher expected return. In this
+paper, we introduce a novel and flexible meta-critic that observes the learning
+process and meta-learns an additional loss for the actor that accelerates and
+improves actor-critic learning. Compared to the vanilla critic, the meta-critic
+network is explicitly trained to accelerate the learning process; and compared
+to existing meta-learning algorithms, meta-critic is rapidly learned online for
+a single task, rather than slowly over a family of tasks. Crucially, our
+meta-critic framework is designed for off-policy based learners, which
+currently provide state-of-the-art reinforcement learning sample efficiency. We
+demonstrate that online meta-critic learning leads to improvements in avariety
+of continuous control environments when combined with contemporary Off-PAC
+methods DDPG, TD3 and the state-of-the-art SAC.
+</summary>
+    <author>
+      <name>Wei Zhou</name>
+    </author>
+    <author>
+      <name>Yiying Li</name>
+    </author>
+    <author>
+      <name>Yongxin Yang</name>
+    </author>
+    <author>
+      <name>Huaimin Wang</name>
+    </author>
+    <author>
+      <name>Timothy M. Hospedales</name>
+    </author>
+    <arxiv:comment xmlns:arxiv="http://arxiv.org/schemas/atom">NeurIPS 2020</arxiv:comment>
+    <link href="http://arxiv.org/abs/2003.05334v2" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/2003.05334v2" rel="related" type="application/pdf"/>
+    <arxiv:primary_category xmlns:arxiv="http://arxiv.org/schemas/atom" term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/1611.06256v3</id>
+    <updated>2017-03-02T19:12:19Z</updated>
+    <published>2016-11-18T21:34:47Z</published>
+    <title>Reinforcement Learning through Asynchronous Advantage Actor-Critic on a
+  GPU</title>
+    <summary>  We introduce a hybrid CPU/GPU version of the Asynchronous Advantage
+Actor-Critic (A3C) algorithm, currently the state-of-the-art method in
+reinforcement learning for various gaming tasks. We analyze its computational
+traits and concentrate on aspects critical to leveraging the GPU's
+computational power. We introduce a system of queues and a dynamic scheduling
+strategy, potentially helpful for other asynchronous algorithms as well. Our
+hybrid CPU/GPU version of A3C, based on TensorFlow, achieves a significant
+speed up compared to a CPU implementation; we make it publicly available to
+other researchers at https://github.com/NVlabs/GA3C .
+</summary>
+    <author>
+      <name>Mohammad Babaeizadeh</name>
+    </author>
+    <author>
+      <name>Iuri Frosio</name>
+    </author>
+    <author>
+      <name>Stephen Tyree</name>
+    </author>
+    <author>
+      <name>Jason Clemons</name>
+    </author>
+    <author>
+      <name>Jan Kautz</name>
+    </author>
+    <link href="http://arxiv.org/abs/1611.06256v3" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/1611.06256v3" rel="related" type="application/pdf"/>
+    <arxiv:primary_category xmlns:arxiv="http://arxiv.org/schemas/atom" term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/1703.01274v2</id>
+    <updated>2017-03-15T15:15:14Z</updated>
+    <published>2017-03-03T18:15:32Z</published>
+    <title>Actor-Critic Reinforcement Learning with Simultaneous Human Control and
+  Feedback</title>
+    <summary>  This paper contributes a first study into how different human users deliver
+simultaneous control and feedback signals during human-robot interaction. As
+part of this work, we formalize and present a general interactive learning
+framework for online cooperation between humans and reinforcement learning
+agents. In many human-machine interaction settings, there is a growing gap
+between the degrees-of-freedom of complex semi-autonomous systems and the
+number of human control channels. Simple human control and feedback mechanisms
+are required to close this gap and allow for better collaboration between
+humans and machines on complex tasks. To better inform the design of concurrent
+control and feedback interfaces, we present experimental results from a
+human-robot collaborative domain wherein the human must simultaneously deliver
+both control and feedback signals to interactively train an actor-critic
+reinforcement learning robot. We compare three experimental conditions: 1)
+human delivered control signals, 2) reward-shaping feedback signals, and 3)
+simultaneous control and feedback. Our results suggest that subjects provide
+less feedback when simultaneously delivering feedback and control signals and
+that control signal quality is not significantly diminished. Our data suggest
+that subjects may also modify when and how they provide feedback. Through
+algorithmic development and tuning informed by this study, we expect
+semi-autonomous actions of robotic agents can be better shaped by human
+feedback, allowing for seamless collaboration and improved performance in
+difficult interactive domains.
+</summary>
+    <author>
+      <name>Kory W. Mathewson</name>
+    </author>
+    <author>
+      <name>Patrick M. Pilarski</name>
+    </author>
+    <arxiv:comment xmlns:arxiv="http://arxiv.org/schemas/atom">10 pages, 2 pages of references, 8 figures. Under review for the 34th
+  International Conference on Machine Learning, Sydney, Australia, 2017.
+  Copyright 2017 by the authors</arxiv:comment>
+    <link href="http://arxiv.org/abs/1703.01274v2" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/1703.01274v2" rel="related" type="application/pdf"/>
+    <arxiv:primary_category xmlns:arxiv="http://arxiv.org/schemas/atom" term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.HC" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.RO" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/1703.10039v2</id>
+    <updated>2017-08-23T22:40:49Z</updated>
+    <published>2017-03-25T23:01:20Z</published>
+    <title>Cohesion-based Online Actor-Critic Reinforcement Learning for mHealth
+  Intervention</title>
+    <summary>  In the wake of the vast population of smart device users worldwide, mobile
+health (mHealth) technologies are hopeful to generate positive and wide
+influence on people's health. They are able to provide flexible, affordable and
+portable health guides to device users. Current online decision-making methods
+for mHealth assume that the users are completely heterogeneous. They share no
+information among users and learn a separate policy for each user. However,
+data for each user is very limited in size to support the separate online
+learning, leading to unstable policies that contain lots of variances. Besides,
+we find the truth that a user may be similar with some, but not all, users, and
+connected users tend to have similar behaviors. In this paper, we propose a
+network cohesion constrained (actor-critic) Reinforcement Learning (RL) method
+for mHealth. The goal is to explore how to share information among similar
+users to better convert the limited user information into sharper learned
+policies. To the best of our knowledge, this is the first online actor-critic
+RL for mHealth and first network cohesion constrained (actor-critic) RL method
+in all applications. The network cohesion is important to derive effective
+policies. We come up with a novel method to learn the network by using the warm
+start trajectory, which directly reflects the users' property. The optimization
+of our model is difficult and very different from the general supervised
+learning due to the indirect observation of values. As a contribution, we
+propose two algorithms for the proposed online RLs. Apart from mHealth, the
+proposed methods can be easily applied or adapted to other health-related
+tasks. Extensive experiment results on the HeartSteps dataset demonstrates that
+in a variety of parameter settings, the proposed two methods obtain obvious
+improvements over the state-of-the-art methods.
+</summary>
+    <author>
+      <name>Feiyun Zhu</name>
+    </author>
+    <author>
+      <name>Peng Liao</name>
+    </author>
+    <author>
+      <name>Xinliang Zhu</name>
+    </author>
+    <author>
+      <name>Yaowen Yao</name>
+    </author>
+    <author>
+      <name>Junzhou Huang</name>
+    </author>
+    <link href="http://arxiv.org/abs/1703.10039v2" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/1703.10039v2" rel="related" type="application/pdf"/>
+    <arxiv:primary_category xmlns:arxiv="http://arxiv.org/schemas/atom" term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/1710.06542v1</id>
+    <updated>2017-10-18T01:10:37Z</updated>
+    <published>2017-10-18T01:10:37Z</published>
+    <title>Asymmetric Actor Critic for Image-Based Robot Learning</title>
+    <summary>  Deep reinforcement learning (RL) has proven a powerful technique in many
+sequential decision making domains. However, Robotics poses many challenges for
+RL, most notably training on a physical system can be expensive and dangerous,
+which has sparked significant interest in learning control policies using a
+physics simulator. While several recent works have shown promising results in
+transferring policies trained in simulation to the real world, they often do
+not fully utilize the advantage of working with a simulator. In this work, we
+exploit the full state observability in the simulator to train better policies
+which take as input only partial observations (RGBD images). We do this by
+employing an actor-critic training algorithm in which the critic is trained on
+full states while the actor (or policy) gets rendered images as input. We show
+experimentally on a range of simulated tasks that using these asymmetric inputs
+significantly improves performance. Finally, we combine this method with domain
+randomization and show real robot experiments for several tasks like picking,
+pushing, and moving a block. We achieve this simulation to real world transfer
+without training on any real world data.
+</summary>
+    <author>
+      <name>Lerrel Pinto</name>
+    </author>
+    <author>
+      <name>Marcin Andrychowicz</name>
+    </author>
+    <author>
+      <name>Peter Welinder</name>
+    </author>
+    <author>
+      <name>Wojciech Zaremba</name>
+    </author>
+    <author>
+      <name>Pieter Abbeel</name>
+    </author>
+    <arxiv:comment xmlns:arxiv="http://arxiv.org/schemas/atom">Videos of experiments can be found at http://www.goo.gl/b57WTs</arxiv:comment>
+    <link href="http://arxiv.org/abs/1710.06542v1" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/1710.06542v1" rel="related" type="application/pdf"/>
+    <arxiv:primary_category xmlns:arxiv="http://arxiv.org/schemas/atom" term="cs.RO" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.RO" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/1710.10363v6</id>
+    <updated>2020-10-25T14:41:10Z</updated>
+    <published>2017-10-28T00:55:01Z</published>
+    <title>Diff-DAC: Distributed Actor-Critic for Average Multitask Deep
+  Reinforcement Learning</title>
+    <summary>  We propose a fully distributed actor-critic algorithm approximated by deep
+neural networks, named \textit{Diff-DAC}, with application to single-task and
+to average multitask reinforcement learning (MRL). Each agent has access to
+data from its local task only, but it aims to learn a policy that performs well
+on average for the whole set of tasks. During the learning process, agents
+communicate their value-policy parameters to their neighbors, diffusing the
+information across the network, so that they converge to a common policy, with
+no need for a central node. The method is scalable, since the computational and
+communication costs per agent grow with its number of neighbors. We derive
+Diff-DAC's from duality theory and provide novel insights into the standard
+actor-critic framework, showing that it is actually an instance of the dual
+ascent method that approximates the solution of a linear program. Experiments
+suggest that Diff-DAC can outperform the single previous distributed MRL
+approach (i.e., Dist-MTLPS) and even the centralized architecture.
+</summary>
+    <author>
+      <name>Sergio Valcarcel Macua</name>
+    </author>
+    <author>
+      <name>Aleksi Tukiainen</name>
+    </author>
+    <author>
+      <name>Daniel García-Ocaña Hernández</name>
+    </author>
+    <author>
+      <name>David Baldazo</name>
+    </author>
+    <author>
+      <name>Enrique Munoz de Cote</name>
+    </author>
+    <author>
+      <name>Santiago Zazo</name>
+    </author>
+    <arxiv:journal_ref xmlns:arxiv="http://arxiv.org/schemas/atom">Presented at Adaptive Learning Agents workshop (ALA2018), July
+  14th, 2018, Stockholm, Sweden</arxiv:journal_ref>
+    <link href="http://arxiv.org/abs/1710.10363v6" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/1710.10363v6" rel="related" type="application/pdf"/>
+    <arxiv:primary_category xmlns:arxiv="http://arxiv.org/schemas/atom" term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.MA" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="math.OC" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+</feed>

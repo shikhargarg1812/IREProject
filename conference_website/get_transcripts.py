@@ -14,7 +14,7 @@ import pandas as pd
 
 
 def dump_data(conference_csv, json_filename, watson_override):
-    df = pd.read_csv("nips_2019.csv")
+    df = pd.read_csv(conference_csv)
     results = []
     ctr = 0
     for index in range(len(df)):

@@ -16,7 +16,14 @@ for file in blogFiles:
             finalData[str(idr)]=jsonObj[idx]
             idr+=1
 
-
+youtubeFiles=['../youtube/CodeEmporium/refined_codeemporium.json','../youtube/TwoMinPaper/refined_twominpaper.json','../youtube/YannicKil/refined_yannickil.json']
+for file in youtubeFiles:
+    with open(file) as f:
+        jsonObj = json.load(f)
+        for data in jsonObj:
+            finalData[str(idr)]=data
+            idr+=1
+            # if 'trans'
 jsonObj=json.dumps(finalData,indent=4)
 with open('finalData.json','w') as f:
     f.write(jsonObj)

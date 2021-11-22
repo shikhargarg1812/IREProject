@@ -27,13 +27,8 @@ paper_titles = [item.split('>')[1].split('<')[0] for item in re.findall(p, html)
 p = '<div class="maincardFooter">.*</div>'
 paper_authors = [item.split('>')[1].split('<')[0] for item in re.findall(p, html)]
 
-
-p = '<div class="maincardFooter">.*</div>'
-paper_authors = [item.split('>')[1].split('<')[0] for item in re.findall(p, html)]
-
 p = '<p class="abstract".*</p>'
 abstracts = [item.split('>')[1].split('<')[0] for item in re.findall(p, html)]
-
 
 p = '.*3 min Video.*'
 video_links = [item.split('"')[1] for item in re.findall(p, html)]
@@ -49,11 +44,11 @@ for item in paper_links:
     paper_pdf_links.append(url)
 
 data = {
-"abstracts": abstracts,
+"paper_titles": paper_titles,
 "paper_links": paper_links,
 "paper_pdf_links": paper_pdf_links,
-"paper_titles": paper_titles,
 "paper_authors": paper_authors,
+"abstracts": abstracts,
 "video_links": video_links,
 }
 

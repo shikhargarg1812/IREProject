@@ -184,6 +184,7 @@ text=text.split(" ")
 text = [t for t in text if t not in STOPWORDS]
 text=(" ").join(text)
 
+# print("smog index", smog_index(text))
 print("dale chall readability score",dale_chall_readability_score(text))
 print("Flesch reading ease",flesch_reading_ease(text))
 print("gunning Fog",gunning_fog(text))

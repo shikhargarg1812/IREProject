@@ -27,19 +27,21 @@ Additionally, the short Science folder contains all the blogs on the short Scien
 
 ## Installation :
 Run the following commands to complete installation.
-* pip install urllib3
-* pip install beautifulsoup4
-* pip install jsonlib
-* pip install elementpath
-* pip install regex
-* pip install pandas
-* pip install wordcloud
-* pip install matplotlib
-* pip install nltk
-* pip install -U pip setuptools wheel
-* pip install -U spacy
-* python -m spacy download en_core_web_sm
-* pip install textstat
+```
+pip install urllib3
+pip install beautifulsoup4
+pip install jsonlib
+pip install elementpath
+pip install regex
+pip install pandas
+pip install wordcloud
+pip install matplotlib
+pip install nltk
+pip install -U pip setuptools wheel
+pip install -U spacy
+python -m spacy download en_core_web_sm
+pip install textstat
+```
 
 ## Executing the Code:
 ### For gettting summaries from each of the blog:

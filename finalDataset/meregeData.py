@@ -16,7 +16,7 @@ for file in blogFiles:
             finalData[str(idr)]=jsonObj[idx]
             idr+=1
 
-youtubeFiles=['../youtube/CodeEmporium/refined_codeemporium.json','../youtube/TwoMinPaper/refined_twominpaper.json','../youtube/YannicKil/refined_yannickil.json']
+youtubeFiles=['../youtube/CodeEmporium/refined_codeemporium.json','../youtube/TwoMinPaper/refined_twominpaper.json','../youtube/YannicKil/refined_yannickil.json','../conference_website/refined_nips_2019.json']
 for file in youtubeFiles:
     with open(file) as f:
         jsonObj = json.load(f)
